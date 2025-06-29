@@ -675,6 +675,7 @@ Items _$ItemsFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$Items {
+  @JsonKey(name: 'item')
   List<AbandonmentItem>? get item => throw _privateConstructorUsedError;
 
   /// Serializes this Items to a JSON map.
@@ -691,7 +692,7 @@ abstract class $ItemsCopyWith<$Res> {
   factory $ItemsCopyWith(Items value, $Res Function(Items) then) =
       _$ItemsCopyWithImpl<$Res, Items>;
   @useResult
-  $Res call({List<AbandonmentItem>? item});
+  $Res call({@JsonKey(name: 'item') List<AbandonmentItem>? item});
 }
 
 /// @nodoc
@@ -729,7 +730,7 @@ abstract class _$$ItemsImplCopyWith<$Res> implements $ItemsCopyWith<$Res> {
   ) = __$$ItemsImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({List<AbandonmentItem>? item});
+  $Res call({@JsonKey(name: 'item') List<AbandonmentItem>? item});
 }
 
 /// @nodoc
@@ -760,13 +761,15 @@ class __$$ItemsImplCopyWithImpl<$Res>
 /// @nodoc
 @JsonSerializable()
 class _$ItemsImpl implements _Items {
-  const _$ItemsImpl({final List<AbandonmentItem>? item}) : _item = item;
+  const _$ItemsImpl({@JsonKey(name: 'item') final List<AbandonmentItem>? item})
+    : _item = item;
 
   factory _$ItemsImpl.fromJson(Map<String, dynamic> json) =>
       _$$ItemsImplFromJson(json);
 
   final List<AbandonmentItem>? _item;
   @override
+  @JsonKey(name: 'item')
   List<AbandonmentItem>? get item {
     final value = _item;
     if (value == null) return null;
@@ -808,11 +811,14 @@ class _$ItemsImpl implements _Items {
 }
 
 abstract class _Items implements Items {
-  const factory _Items({final List<AbandonmentItem>? item}) = _$ItemsImpl;
+  const factory _Items({
+    @JsonKey(name: 'item') final List<AbandonmentItem>? item,
+  }) = _$ItemsImpl;
 
   factory _Items.fromJson(Map<String, dynamic> json) = _$ItemsImpl.fromJson;
 
   @override
+  @JsonKey(name: 'item')
   List<AbandonmentItem>? get item;
 
   /// Create a copy of Items
