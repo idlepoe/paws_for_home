@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:paws_for_home/core/services/abandonment_api_service.dart';
 import 'package:paws_for_home/features/splash/splash_screen.dart';
-import 'package:paws_for_home/features/pets/presentation/screens/pets_list_screen.dart';
-import 'package:paws_for_home/features/pets/presentation/screens/search_filter_screen.dart';
-import 'package:paws_for_home/features/pets/presentation/screens/pet_detail_screen.dart';
+import 'package:paws_for_home/features/pets/presentation/screens/search_filter/search_filter_screen.dart';
 import 'package:paws_for_home/features/pets/domain/entities/pet_search_filter.dart';
 import 'package:paws_for_home/shared/models/abandonment_response.dart';
+
+import 'features/pets/presentation/screens/pet_detail/pet_detail_screen.dart';
+import 'features/pets/presentation/screens/pets_list/pets_list_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
