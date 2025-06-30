@@ -4,9 +4,59 @@ import 'package:paws_for_home/core/constants/app_colors.dart';
 import 'package:paws_for_home/shared/models/abandonment_response.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class PetDetailScreen extends StatelessWidget {
+import 'search_filter_screen.dart';
+
+class PetDetailScreen extends StatefulWidget {
   final AbandonmentItem item;
   const PetDetailScreen({super.key, required this.item});
+
+  @override
+  State<PetDetailScreen> createState() => _PetDetailScreenState();
+}
+
+class _PetDetailScreenState extends State<PetDetailScreen> {
+  String? _selectedImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    logger.d(widget.item);
+    // 초기 선택된 이미지는 첫 번째 이미지
+    _selectedImageUrl = widget.item.popfile1;
+  }
+
+  // 모든 이미지 URL을 가져오는 메서드
+  List<String> get _allImages {
+    final images = <String>{};
+
+    // popfile1부터 popfile8까지 순서대로 추가 (중복 제거)
+    if (widget.item.popfile1 != null && widget.item.popfile1!.isNotEmpty) {
+      images.add(widget.item.popfile1!);
+    }
+    if (widget.item.popfile2 != null && widget.item.popfile2!.isNotEmpty) {
+      images.add(widget.item.popfile2!);
+    }
+    if (widget.item.popfile3 != null && widget.item.popfile3!.isNotEmpty) {
+      images.add(widget.item.popfile3!);
+    }
+    if (widget.item.popfile4 != null && widget.item.popfile4!.isNotEmpty) {
+      images.add(widget.item.popfile4!);
+    }
+    if (widget.item.popfile5 != null && widget.item.popfile5!.isNotEmpty) {
+      images.add(widget.item.popfile5!);
+    }
+    if (widget.item.popfile6 != null && widget.item.popfile6!.isNotEmpty) {
+      images.add(widget.item.popfile6!);
+    }
+    if (widget.item.popfile7 != null && widget.item.popfile7!.isNotEmpty) {
+      images.add(widget.item.popfile7!);
+    }
+    if (widget.item.popfile8 != null && widget.item.popfile8!.isNotEmpty) {
+      images.add(widget.item.popfile8!);
+    }
+
+    return images.toList();
+  }
 
   Widget _buildInfoCard(String title, List<Widget> children) {
     return Container(
@@ -175,14 +225,13 @@ class PetDetailScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (item.popfile1 != null && item.popfile1!.isNotEmpty)
+          if (widget.item.popfile1 != null && widget.item.popfile1!.isNotEmpty)
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: CachedNetworkImage(
-                imageUrl: item.popfile1!,
-                height: 240,
+                imageUrl: widget.item.popfile1!,
                 width: double.infinity,
-                fit: BoxFit.cover,
+                fit: BoxFit.fitWidth,
                 alignment: Alignment.topCenter,
                 placeholder: (context, url) => Container(
                   height: 240,
@@ -212,30 +261,91 @@ class PetDetailScreen extends StatelessWidget {
 
           const SizedBox(height: 16),
 
+          // 추가 사진 갤러리
+          if (_allImages.length > 1)
+            Container(
+              height: 100,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: _allImages.length,
+                itemBuilder: (context, index) {
+                  final imageUrl = _allImages[index];
+                  final isSelected = _selectedImageUrl == imageUrl;
+
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedImageUrl = imageUrl;
+                      });
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 12),
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.tossBlue
+                              : AppColors.border,
+                          width: isSelected ? 2 : 1,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: AppColors.divider,
+                            child: const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.gray,
+                            child: const Center(
+                              child: Icon(
+                                Icons.error,
+                                color: AppColors.textSecondary,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+          if (_allImages.length > 1) const SizedBox(height: 16),
+
           _buildInfoCard('기본 정보', [
-            _buildInfoRow('품종', item.kindFullNm ?? item.kindNm),
-            _buildInfoRow('공고번호', item.noticeNo),
-            _buildInfoRow('유기번호', item.desertionNo),
-            _buildInfoRow('RFID', item.rfidCd),
-            _buildInfoRow('상태', item.processState),
+            _buildInfoRow('품종', widget.item.kindFullNm ?? widget.item.kindNm),
+            _buildInfoRow('공고번호', widget.item.noticeNo),
+            _buildInfoRow('유기번호', widget.item.desertionNo),
+            _buildInfoRow('RFID', widget.item.rfidCd),
+            _buildInfoRow('상태', widget.item.processState),
             Row(
               children: [
-                if (item.sexCd != null)
+                if (widget.item.sexCd != null)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: item.sexCd == 'M'
+                      color: widget.item.sexCd == 'M'
                           ? Colors.orange[100]
                           : Colors.pink[100],
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      item.sexCd == 'M' ? '수컷' : '암컷',
+                      widget.item.sexCd == 'M' ? '수컷' : '암컷',
                       style: TextStyle(
-                        color: item.sexCd == 'M'
+                        color: widget.item.sexCd == 'M'
                             ? Colors.orange[800]
                             : Colors.pink[800],
                         fontSize: 12,
@@ -244,22 +354,22 @@ class PetDetailScreen extends StatelessWidget {
                     ),
                   ),
                 const SizedBox(width: 8),
-                if (item.neuterYn != null)
+                if (widget.item.neuterYn != null)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: item.neuterYn == 'Y'
+                      color: widget.item.neuterYn == 'Y'
                           ? Colors.deepOrange[100]
                           : Colors.orange[50],
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      item.neuterYn == 'Y' ? '중성화' : '미중성화',
+                      widget.item.neuterYn == 'Y' ? '중성화' : '미중성화',
                       style: TextStyle(
-                        color: item.neuterYn == 'Y'
+                        color: widget.item.neuterYn == 'Y'
                             ? Colors.deepOrange[800]
                             : Colors.orange[800],
                         fontSize: 12,
@@ -274,35 +384,43 @@ class PetDetailScreen extends StatelessWidget {
           _buildInfoCard('발견 정보', [
             _buildInfoRow(
               '발견일',
-              item.happenDt != null ? _formatDate(item.happenDt!) : null,
+              widget.item.happenDt != null
+                  ? _formatDate(widget.item.happenDt!)
+                  : null,
             ),
-            _buildInfoRow('발견장소', item.happenPlace),
-            _buildInfoRow('특징', item.specialMark),
-            _buildInfoRow('색상', item.colorCd),
-            _buildInfoRow('나이', item.age),
-            _buildInfoRow('체중', item.weight),
+            _buildInfoRow('발견장소', widget.item.happenPlace),
+            _buildInfoRow('특징', widget.item.specialMark),
+            _buildInfoRow('색상', widget.item.colorCd),
+            _buildInfoRow('나이', widget.item.age),
+            _buildInfoRow('체중', widget.item.weight),
           ]),
 
           _buildInfoCard('보호 정보', [
-            _buildInfoRow('보호소명', item.careNm),
-            _buildInfoRow('보호소 주소', item.careAddr),
-            _buildInfoRow('보호소 전화', item.careTel),
+            _buildInfoRow('보호소명', widget.item.careNm),
+            _buildInfoRow('보호소 주소', widget.item.careAddr),
+            _buildInfoRow('보호소 전화', widget.item.careTel),
             _buildInfoRow(
               '보호 시작일',
-              item.noticeSdt != null ? _formatDate(item.noticeSdt!) : null,
+              widget.item.noticeSdt != null
+                  ? _formatDate(widget.item.noticeSdt!)
+                  : null,
             ),
             _buildInfoRow(
               '보호 종료일',
-              item.noticeEdt != null ? _formatDate(item.noticeEdt!) : null,
+              widget.item.noticeEdt != null
+                  ? _formatDate(widget.item.noticeEdt!)
+                  : null,
             ),
           ]),
 
           _buildInfoCard('기타 정보', [
             _buildInfoRow(
               '공고일',
-              item.noticeNo != null ? _formatDate(item.noticeNo!) : null,
+              widget.item.noticeNo != null
+                  ? _formatDate(widget.item.noticeNo!)
+                  : null,
             ),
-            _buildInfoRow('관할기관', item.orgNm),
+            _buildInfoRow('관할기관', widget.item.orgNm),
           ]),
         ],
       ),

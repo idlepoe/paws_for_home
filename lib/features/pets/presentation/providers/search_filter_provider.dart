@@ -34,21 +34,21 @@ class DropdownDataNotifier
       ];
 
       final stateList = [
-        {'code': null, 'name': '전체'},
-        {'code': '공고중', 'name': '공고중'},
-        {'code': '보호중', 'name': '보호중'},
-        {'code': '종료(반환)', 'name': '종료(반환)'},
+        {'code': '', 'name': '선택 안함'},
+        {'code': 'notice', 'name': '공고중'},
+        {'code': 'protect', 'name': '보호중'},
+        {'code': 'finish', 'name': '보호종료'},
       ];
 
       final neuterList = [
-        {'code': null, 'name': '전체'},
+        {'code': '', 'name': '선택 안함'},
         {'code': 'Y', 'name': '예'},
         {'code': 'N', 'name': '아니오'},
         {'code': 'U', 'name': '미상'},
       ];
 
       final sexList = [
-        {'code': null, 'name': '전체'},
+        {'code': '', 'name': '선택 안함'},
         {'code': 'M', 'name': '수컷'},
         {'code': 'F', 'name': '암컷'},
         {'code': 'Q', 'name': '미상'},
@@ -74,19 +74,19 @@ class DropdownDataNotifier
           {'code': '429900', 'name': '기타'},
         ],
         'state': [
-          {'code': null, 'name': '전체'},
-          {'code': '공고중', 'name': '공고중'},
-          {'code': '보호중', 'name': '보호중'},
-          {'code': '종료(반환)', 'name': '종료(반환)'},
+          {'code': '', 'name': '선택 안함'},
+          {'code': 'notice', 'name': '공고중'},
+          {'code': 'protect', 'name': '보호중'},
+          {'code': 'finish', 'name': '보호종료'},
         ],
         'neuter': [
-          {'code': null, 'name': '전체'},
+          {'code': '', 'name': '선택 안함'},
           {'code': 'Y', 'name': '예'},
           {'code': 'N', 'name': '아니오'},
           {'code': 'U', 'name': '미상'},
         ],
         'sex': [
-          {'code': null, 'name': '전체'},
+          {'code': '', 'name': '선택 안함'},
           {'code': 'M', 'name': '수컷'},
           {'code': 'F', 'name': '암컷'},
           {'code': 'Q', 'name': '미상'},
@@ -181,6 +181,12 @@ class SearchFilterNotifier extends StateNotifier<PetSearchFilter> {
       state = state.copyWith(orgCd: null, careRegNo: null);
     } else if (key == 'org_cd') {
       state = state.copyWith(careRegNo: null);
+    }
+  }
+
+  void ensureSidoSelected(String? defaultSidoCode) {
+    if (state.uprCd == null && defaultSidoCode != null) {
+      state = state.copyWith(uprCd: defaultSidoCode);
     }
   }
 

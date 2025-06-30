@@ -5,6 +5,10 @@ import 'package:paws_for_home/features/pets/data/repositories/pet_repository_imp
 import 'package:paws_for_home/features/pets/domain/entities/pet_search_filter.dart';
 import 'package:paws_for_home/features/pets/domain/usecases/get_pets_usecase.dart';
 import 'package:paws_for_home/shared/models/abandonment_response.dart';
+import 'package:paws_for_home/features/pets/presentation/providers/search_filter_provider.dart';
+import 'package:logger/logger.dart';
+
+final logger = Logger();
 
 // API 서비스 프로바이더
 final apiServiceProvider = Provider<AbandonmentApiService>((ref) {
@@ -49,7 +53,7 @@ final petsProvider =
       ref,
     ) {
       final useCase = ref.watch(getPetsUseCaseProvider);
-      final filter = ref.watch(petSearchFilterProvider);
+      final filter = ref.watch(searchFilterProvider);
       return PetsNotifier(useCase, filter);
     });
 
@@ -67,6 +71,7 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
   }
 
   Future<void> _loadPets({bool reset = false}) async {
+    logger.d('loadPets');
     if (_isLoading) return;
     _isLoading = true;
 
@@ -111,6 +116,7 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
   }
 
   Future<void> searchPets(PetSearchFilter filter) async {
+    logger.d('searchPets');
     _filter = filter;
     await _loadPets(reset: true);
   }

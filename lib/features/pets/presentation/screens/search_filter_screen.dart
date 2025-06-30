@@ -23,6 +23,19 @@ class SearchFilterScreen extends ConsumerWidget {
     final dropdownData = ref.watch(dropdownDataProvider);
     final filterNotifier = ref.read(searchFilterProvider.notifier);
 
+    // 현재 선택된 시도가 없으면 목록에서 선택된 시도를 가져옴
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (filter.uprCd == null) {
+        final prefs = SharedPreferences.getInstance();
+        prefs.then((prefs) {
+          final savedSidoCode = prefs.getString('selected_sido_code');
+          if (savedSidoCode != null) {
+            filterNotifier.setField('upr_cd', savedSidoCode);
+          }
+        });
+      }
+    });
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -56,6 +69,18 @@ class SearchFilterScreen extends ConsumerWidget {
             // 구조일자 선택
             _buildDateRangePicker(context, filter, filterNotifier),
             const SizedBox(height: 24),
+
+            // 시도 선택
+            _buildDropdown(
+              context,
+              ref,
+              '시도',
+              'upr_cd',
+              filter.uprCd,
+              dropdownData['sido'] ?? [],
+              filterNotifier,
+            ),
+            const SizedBox(height: 16),
 
             // 축종 선택
             _buildDropdown(
@@ -110,7 +135,19 @@ class SearchFilterScreen extends ConsumerWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pop(filter);
+                  // 시도가 선택되지 않았으면 첫 번째 시도를 기본값으로 설정
+                  final currentFilter = ref.read(searchFilterProvider);
+                  if (currentFilter.uprCd == null &&
+                      dropdownData['sido']?.isNotEmpty == true) {
+                    final firstSidoCode = dropdownData['sido']!.first['code']
+                        ?.toString();
+                    if (firstSidoCode != null) {
+                      filterNotifier.setField('upr_cd', firstSidoCode);
+                    }
+                  }
+
+                  final finalFilter = ref.read(searchFilterProvider);
+                  Navigator.of(context).pop(finalFilter);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
@@ -144,12 +181,12 @@ class SearchFilterScreen extends ConsumerWidget {
     final safeItems = <DropdownMenuItem<String?>>[];
     safeItems.add(
       DropdownMenuItem<String?>(
-        value: null,
+        value: '',
         child: Text('선택 안함', style: TextStyle(color: AppColors.textSecondary)),
       ),
     );
 
-    final seenValues = <String?>{null};
+    final seenValues = <String?>{''};
     for (final item in items) {
       final code = item['code']?.toString();
       if (!seenValues.contains(code)) {
@@ -164,7 +201,9 @@ class SearchFilterScreen extends ConsumerWidget {
     }
 
     // value가 items에 존재하는지 확인
-    final safeValue = seenValues.contains(value) ? value : null;
+    final safeValue = value == null || value.isEmpty
+        ? ''
+        : (seenValues.contains(value) ? value : '');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -204,8 +243,19 @@ class SearchFilterScreen extends ConsumerWidget {
           fontWeight: FontWeight.w500,
         ),
         items: safeItems,
-        onChanged: (v) {
+        onChanged: (v) async {
+          // 빈 문자열도 그대로 저장
           ref.read(searchFilterProvider.notifier).setField(key, v);
+
+          // 시도 선택 시 SharedPreferences에 저장하여 목록 화면과 동기화
+          if (key == 'upr_cd') {
+            final prefs = await SharedPreferences.getInstance();
+            if (v != null && v.isNotEmpty) {
+              await prefs.setString('selected_sido_code', v);
+            } else {
+              await prefs.remove('selected_sido_code');
+            }
+          }
         },
       ),
     );
@@ -221,8 +271,14 @@ class SearchFilterScreen extends ConsumerWidget {
   }) {
     // 중복 제거 및 안전한 items 생성
     final safeItems = <DropdownMenuItem<String?>>[];
-    final seenValues = <String?>{};
+    safeItems.add(
+      DropdownMenuItem<String?>(
+        value: '',
+        child: Text('선택 안함', style: TextStyle(color: AppColors.textSecondary)),
+      ),
+    );
 
+    final seenValues = <String?>{''};
     for (final item in items) {
       final code = item['code'];
       if (!seenValues.contains(code)) {
@@ -237,7 +293,9 @@ class SearchFilterScreen extends ConsumerWidget {
     }
 
     // value가 items에 존재하는지 확인
-    final safeValue = seenValues.contains(value) ? value : null;
+    final safeValue = value == null || value.isEmpty
+        ? ''
+        : (seenValues.contains(value) ? value : '');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -277,8 +335,19 @@ class SearchFilterScreen extends ConsumerWidget {
           fontWeight: FontWeight.w500,
         ),
         items: safeItems,
-        onChanged: (v) {
+        onChanged: (v) async {
+          // 빈 문자열도 그대로 저장
           ref.read(searchFilterProvider.notifier).setField(key, v);
+
+          // 시도 선택 시 SharedPreferences에 저장하여 목록 화면과 동기화
+          if (key == 'upr_cd') {
+            final prefs = await SharedPreferences.getInstance();
+            if (v != null && v.isNotEmpty) {
+              await prefs.setString('selected_sido_code', v);
+            } else {
+              await prefs.remove('selected_sido_code');
+            }
+          }
         },
       ),
     );
