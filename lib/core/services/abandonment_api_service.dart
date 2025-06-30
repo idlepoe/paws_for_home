@@ -23,7 +23,7 @@ class AbandonmentApiService {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          _logRequest(options);
+          // _logRequest(options);
           handler.next(options);
         },
         onResponse: (response, handler) {
@@ -93,19 +93,23 @@ class AbandonmentApiService {
       if (kind != null && kind.isNotEmpty) buffer.write('&kind=$kind');
       if (uprCd != null && uprCd.isNotEmpty) buffer.write('&upr_cd=$uprCd');
       if (orgCd != null && orgCd.isNotEmpty) buffer.write('&org_cd=$orgCd');
-      if (careRegNo != null && careRegNo.isNotEmpty)
+      if (careRegNo != null && careRegNo.isNotEmpty) {
         buffer.write('&care_reg_no=$careRegNo');
+      }
       if (state != null && state.isNotEmpty) buffer.write('&state=$state');
-      if (neuterYn != null && neuterYn.isNotEmpty)
+      if (neuterYn != null && neuterYn.isNotEmpty) {
         buffer.write('&neuter_yn=$neuterYn');
+      }
       if (bgupd != null && bgupd.isNotEmpty) buffer.write('&bgupd=$bgupd');
       if (enupd != null && enupd.isNotEmpty) buffer.write('&enupd=$enupd');
       if (sexCd != null && sexCd.isNotEmpty) buffer.write('&sex_cd=$sexCd');
       if (rfidCd != null && rfidCd.isNotEmpty) buffer.write('&rfid_cd=$rfidCd');
-      if (desertionNo != null && desertionNo.isNotEmpty)
+      if (desertionNo != null && desertionNo.isNotEmpty) {
         buffer.write('&desertion_no=$desertionNo');
-      if (noticeNo != null && noticeNo.isNotEmpty)
+      }
+      if (noticeNo != null && noticeNo.isNotEmpty) {
         buffer.write('&notice_no=$noticeNo');
+      }
 
       final url = buffer.toString();
       final response = await _dio.get(url);
