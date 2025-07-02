@@ -31,13 +31,7 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
 
     // 검색 조건 변경 시 시도 선택도 업데이트
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final filter = ref.read(searchFilterProvider);
-      if (filter.uprCd != null && filter.uprCd != _selectedSidoCode) {
-        setState(() {
-          _selectedSidoCode = filter.uprCd;
-        });
-        _saveSidoCode(filter.uprCd);
-      }
+      _ensureSidoSelectedAndSearch();
     });
   }
 
@@ -81,6 +75,12 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
       setState(() {
         _selectedSidoCode = savedCode;
       });
+    } else {
+      // 저장된 시도 코드가 없으면 기본 시도(서울특별시)로 설정
+      setState(() {
+        _selectedSidoCode = '6110000';
+      });
+      await _saveSidoCode('6110000');
     }
   }
 
@@ -110,12 +110,29 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     }
   }
 
-  void _ensureSidoSelected(List<Map<String, dynamic>> sidoList) {
-    if (_selectedSidoCode == null && sidoList.isNotEmpty) {
+  void _ensureSidoSelectedAndSearch() {
+    final dropdownData = ref.read(dropdownDataProvider);
+    final sidoList = dropdownData['sido'] ?? [];
+
+    // 저장된 시도 코드가 있으면 사용
+    if (_selectedSidoCode != null) {
+      final currentFilter = ref.read(searchFilterProvider);
+      if (currentFilter.uprCd != _selectedSidoCode) {
+        final newFilter = currentFilter.copyWith(uprCd: _selectedSidoCode);
+        ref.read(searchFilterProvider.notifier).updateFilter(newFilter);
+        ref.read(petsProvider.notifier).searchPets(newFilter);
+      }
+    }
+    // 저장된 시도 코드가 없고 시도 리스트가 있으면 첫 번째 시도로 설정
+    else if (sidoList.isNotEmpty) {
       final firstSidoCode = sidoList.first['code']?.toString();
       if (firstSidoCode != null) {
         _onSidoSelected(firstSidoCode);
       }
+    }
+    // 시도 리스트가 비어있으면 기본 시도(서울특별시)로 설정
+    else {
+      _onSidoSelected('6110000');
     }
   }
 

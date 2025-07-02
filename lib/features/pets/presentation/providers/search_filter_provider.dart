@@ -212,5 +212,8 @@ class SearchFilterNotifier extends StateNotifier<PetSearchFilter> {
 
 final searchFilterProvider =
     StateNotifierProvider<SearchFilterNotifier, PetSearchFilter>((ref) {
-      return SearchFilterNotifier(const PetSearchFilter());
+      // 기본 시도(서울특별시)로 초기화
+      return SearchFilterNotifier(
+        const PetSearchFilter().copyWith(uprCd: '6110000'),
+      );
     });

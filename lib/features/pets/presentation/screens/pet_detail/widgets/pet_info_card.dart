@@ -73,15 +73,27 @@ class PetInfoRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  value!,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: AppColors.textPrimary,
+                if (label == '보호소 전화')
+                  GestureDetector(
+                    onTap: () => _makePhoneCall(value!),
+                    child: Text(
+                      value!,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: AppColors.tossBlue,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  )
+                else
+                  Text(
+                    value!,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
-                if ((label == '주소' || label == '발견장소' || label == '보호소명') &&
-                    value!.isNotEmpty)
+                if ((label == '보호소 주소' || label == '발견장소') && value!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Row(
@@ -121,6 +133,13 @@ class PetInfoRow extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _makePhoneCall(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    }
   }
 
   Widget _buildMapButton(String label, String iconPath, VoidCallback onTap) {

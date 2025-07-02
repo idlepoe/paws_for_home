@@ -83,10 +83,17 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
         state = const AsyncValue.loading();
       }
 
+      // 시도 정보가 없으면 기본 시도(서울특별시)로 설정
+      PetSearchFilter filterToUse = _filter;
+      if (_filter.isEmpty || _filter.uprCd == null) {
+        filterToUse = _filter.copyWith(uprCd: '6110000'); // 서울특별시 코드
+        logger.d('시도 정보가 없어서 기본 시도(서울특별시)로 설정');
+      }
+
       final pets = await _useCase.execute(
         numOfRows: '10',
         pageNo: _page.toString(),
-        filter: _filter.isEmpty ? null : _filter,
+        filter: filterToUse.isEmpty ? null : filterToUse,
       );
 
       if (reset) {
