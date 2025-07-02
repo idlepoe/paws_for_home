@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swipeable_page_route/swipeable_page_route.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:logger/logger.dart';
@@ -38,7 +39,7 @@ class SearchFilterScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
+      appBar: MorphingAppBar(
         title: const Text(
           '검색 조건',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
@@ -46,11 +47,13 @@ class SearchFilterScreen extends ConsumerWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
+          key: const ValueKey('back'),
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           TextButton(
+            key: const ValueKey('reset'),
             onPressed: () {
               filterNotifier.reset();
             },
@@ -524,6 +527,124 @@ class SearchFilterScreen extends ConsumerWidget {
     List<Map<String, dynamic>> items,
     SearchFilterNotifier notifier,
   ) {
-    return _comboBox(context, ref, label, key, items, value: value);
+    // 중복 제거 및 안전한 items 생성
+    final safeItems = <DropdownMenuItem<String?>>[];
+
+    // 축종 선택 시에는 '선택 안함' 옵션을 제거
+    if (key != 'upkind') {
+      safeItems.add(
+        DropdownMenuItem<String?>(
+          value: '',
+          child: Text(
+            '선택 안함',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
+
+    final seenValues = <String?>{key != 'upkind' ? '' : null};
+    for (final item in items) {
+      final code = item['code']?.toString();
+      if (!seenValues.contains(code)) {
+        seenValues.add(code);
+        safeItems.add(
+          DropdownMenuItem<String?>(
+            value: code,
+            child: Text(item['name']?.toString() ?? code ?? ''),
+          ),
+        );
+      }
+    }
+
+    // 축종 선택 시 기본값 설정
+    String? safeValue;
+    if (key == 'upkind') {
+      // 축종이 선택되지 않았거나 빈 값이면 첫 번째 축종을 기본값으로 설정
+      if (value == null || value.isEmpty) {
+        if (items.isNotEmpty) {
+          final firstCode = items.first['code']?.toString();
+          if (firstCode != null) {
+            safeValue = firstCode;
+            // 기본값을 필터에 설정
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              notifier.setField(key, firstCode);
+            });
+          }
+        }
+      } else {
+        safeValue = seenValues.contains(value) ? value : null;
+      }
+    } else {
+      // 다른 필드들은 기존 로직 유지
+      safeValue = value == null || value.isEmpty
+          ? ''
+          : (seenValues.contains(value) ? value : '');
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: DropdownButtonFormField<String?>(
+        value: safeValue,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: AppColors.border),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: AppColors.border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: AppColors.primary),
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+        ),
+        dropdownColor: Colors.white,
+        style: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
+        items: safeItems,
+        onChanged: (v) async {
+          // 빈 문자열도 그대로 저장
+          ref.read(searchFilterProvider.notifier).setField(key, v);
+
+          // 시도 선택 시 SharedPreferences에 저장하여 목록 화면과 동기화
+          if (key == 'upr_cd') {
+            final prefs = await SharedPreferences.getInstance();
+            if (v != null && v.isNotEmpty) {
+              await prefs.setString('selected_sido_code', v);
+            } else {
+              await prefs.remove('selected_sido_code');
+            }
+          }
+
+          // 축종 선택 시 SharedPreferences에 저장하여 목록 화면과 동기화
+          if (key == 'upkind') {
+            final prefs = await SharedPreferences.getInstance();
+            if (v != null && v.isNotEmpty) {
+              await prefs.setString('selected_kind_code', v);
+            } else {
+              await prefs.remove('selected_kind_code');
+            }
+          }
+        },
+      ),
+    );
   }
 }

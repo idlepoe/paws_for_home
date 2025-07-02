@@ -61,6 +61,7 @@ dependencies:
   # Code Generation
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
+  swipeable_page_route: ^0.4.7
 
 dev_dependencies:
   flutter_test:

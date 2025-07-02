@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:swipeable_page_route/swipeable_page_route.dart';
 import 'package:paws_for_home/core/constants/app_colors.dart';
 import 'package:paws_for_home/features/pets/domain/entities/pet_search_filter.dart';
 import '../../providers/pet_providers.dart';
@@ -8,6 +9,7 @@ import 'widgets/pet_card.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'widgets/sido_selector.dart';
+import 'widgets/kind_selector.dart';
 import 'widgets/search_conditions.dart';
 import 'widgets/pet_list_item.dart';
 
@@ -22,16 +24,19 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
   String? _selectedSidoCode;
+  String? _selectedKindCode;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
     _loadSavedSidoCode();
+    _loadSavedKindCode();
 
     // 검색 조건 변경 시 시도 선택도 업데이트
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ensureSidoSelectedAndSearch();
+      _ensureKindSelectedAndSearch();
     });
   }
 
@@ -84,6 +89,22 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     }
   }
 
+  Future<void> _loadSavedKindCode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedCode = prefs.getString('selected_kind_code');
+    if (savedCode != null) {
+      setState(() {
+        _selectedKindCode = savedCode;
+      });
+    } else {
+      // 저장된 축종 코드가 없으면 기본 축종(개)으로 설정
+      setState(() {
+        _selectedKindCode = '417000';
+      });
+      await _saveKindCode('417000');
+    }
+  }
+
   void _onSidoSelected(String? sidoCode) async {
     setState(() {
       _selectedSidoCode = sidoCode;
@@ -101,12 +122,38 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     ref.read(petsProvider.notifier).searchPets(newFilter);
   }
 
+  void _onKindSelected(String? kindCode) async {
+    setState(() {
+      _selectedKindCode = kindCode;
+    });
+
+    // SharedPreferences에 저장
+    await _saveKindCode(kindCode);
+
+    // 필터 업데이트
+    final currentFilter = ref.read(searchFilterProvider);
+    final newFilter = currentFilter.copyWith(upkind: kindCode);
+    ref.read(searchFilterProvider.notifier).updateFilter(newFilter);
+
+    // 펫 목록 새로고침
+    ref.read(petsProvider.notifier).searchPets(newFilter);
+  }
+
   Future<void> _saveSidoCode(String? sidoCode) async {
     final prefs = await SharedPreferences.getInstance();
     if (sidoCode != null) {
       await prefs.setString('selected_sido_code', sidoCode);
     } else {
       await prefs.remove('selected_sido_code');
+    }
+  }
+
+  Future<void> _saveKindCode(String? kindCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (kindCode != null) {
+      await prefs.setString('selected_kind_code', kindCode);
+    } else {
+      await prefs.remove('selected_kind_code');
     }
   }
 
@@ -136,13 +183,37 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     }
   }
 
+  void _ensureKindSelectedAndSearch() {
+    final dropdownData = ref.read(dropdownDataProvider);
+    final kindList = dropdownData['upkind'] ?? [];
+
+    // 저장된 축종 코드가 있으면 사용
+    if (_selectedKindCode != null) {
+      final currentFilter = ref.read(searchFilterProvider);
+      if (currentFilter.upkind != _selectedKindCode) {
+        final newFilter = currentFilter.copyWith(upkind: _selectedKindCode);
+        ref.read(searchFilterProvider.notifier).updateFilter(newFilter);
+        ref.read(petsProvider.notifier).searchPets(newFilter);
+      }
+    }
+    // 저장된 축종 코드가 없고 축종 리스트가 있으면 첫 번째 축종으로 설정
+    else if (kindList.isNotEmpty) {
+      final firstKindCode = kindList.first['code']?.toString();
+      if (firstKindCode != null) {
+        _onKindSelected(firstKindCode);
+      }
+    }
+    // 축종 리스트가 비어있으면 기본 축종(개)으로 설정
+    else {
+      _onKindSelected('417000');
+    }
+  }
+
   void _removeCondition(int index, String condition) {
     final notifier = ref.read(searchFilterProvider.notifier);
 
     // 조건에 따라 해당 필드 삭제 (빈 문자열로 설정)
-    if (condition.startsWith('축종:')) {
-      notifier.setField('upkind', '');
-    } else if (condition.startsWith('상태:')) {
+    if (condition.startsWith('상태:')) {
       notifier.setField('state', '');
     } else if (condition.startsWith('중성화:')) {
       notifier.setField('neuter_yn', '');
@@ -165,7 +236,7 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
+      appBar: MorphingAppBar(
         title: const Text(
           '구조동물 목록',
           style: TextStyle(
@@ -178,6 +249,7 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
         elevation: 0,
         actions: [
           IconButton(
+            key: const ValueKey('search'),
             icon: Icon(Icons.search, color: AppColors.tossBlue),
             onPressed: () async {
               final result = await context.push<PetSearchFilter>(
@@ -199,6 +271,12 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
             sidoList: dropdownData['sido'] ?? [],
             selectedSidoCode: _selectedSidoCode,
             onSidoSelected: _onSidoSelected,
+          ),
+          // 축종 선택기
+          KindSelector(
+            kindList: dropdownData['upkind'] ?? [],
+            selectedKindCode: _selectedKindCode,
+            onKindSelected: _onKindSelected,
           ),
           // 검색 조건 표시
           SearchConditions(onRemoveCondition: _removeCondition),

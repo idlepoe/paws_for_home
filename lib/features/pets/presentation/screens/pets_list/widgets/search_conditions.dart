@@ -78,14 +78,6 @@ class SearchConditions extends ConsumerWidget {
     final filter = ref.watch(searchFilterProvider);
     final conditions = <String>[];
 
-    // 축종 조건
-    if (filter.upkind != null) {
-      final upkindName = _getUpkindName(filter.upkind!);
-      if (upkindName.isNotEmpty) {
-        conditions.add('축종: $upkindName');
-      }
-    }
-
     // 상태 조건
     if (filter.state != null) {
       final stateName = _getStateName(filter.state!);
