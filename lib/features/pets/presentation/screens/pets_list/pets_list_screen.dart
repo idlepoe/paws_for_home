@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swipeable_page_route/swipeable_page_route.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:paws_for_home/core/constants/app_colors.dart';
 import 'package:paws_for_home/features/pets/domain/entities/pet_search_filter.dart';
+import 'package:paws_for_home/shared/models/abandonment_response.dart';
 import '../../providers/pet_providers.dart';
 import '../../providers/search_filter_provider.dart';
 import 'widgets/pet_card.dart';
@@ -12,6 +14,11 @@ import 'widgets/sido_selector.dart';
 import 'widgets/kind_selector.dart';
 import 'widgets/search_conditions.dart';
 import 'widgets/pet_list_item.dart';
+
+// 뷰 타입을 관리하는 프로바이더
+final viewTypeProvider = StateProvider<ViewType>((ref) => ViewType.grid);
+
+enum ViewType { list, grid }
 
 class PetsListScreen extends ConsumerStatefulWidget {
   const PetsListScreen({super.key});
@@ -32,6 +39,7 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     _scrollController.addListener(_onScroll);
     _loadSavedSidoCode();
     _loadSavedKindCode();
+    _loadSavedViewType();
 
     // 검색 조건 변경 시 시도 선택도 업데이트
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -105,6 +113,19 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     }
   }
 
+  Future<void> _loadSavedViewType() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedViewType = prefs.getString('view_type');
+    if (savedViewType != null) {
+      final viewType = savedViewType == 'list' ? ViewType.list : ViewType.grid;
+      ref.read(viewTypeProvider.notifier).state = viewType;
+    } else {
+      // 저장된 뷰 타입이 없으면 기본값(그리드)으로 설정
+      ref.read(viewTypeProvider.notifier).state = ViewType.grid;
+      await _saveViewType(ViewType.grid);
+    }
+  }
+
   void _onSidoSelected(String? sidoCode) async {
     setState(() {
       _selectedSidoCode = sidoCode;
@@ -155,6 +176,12 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     } else {
       await prefs.remove('selected_kind_code');
     }
+  }
+
+  Future<void> _saveViewType(ViewType viewType) async {
+    final prefs = await SharedPreferences.getInstance();
+    final viewTypeString = viewType == ViewType.list ? 'list' : 'grid';
+    await prefs.setString('view_type', viewTypeString);
   }
 
   void _ensureSidoSelectedAndSearch() {
@@ -228,6 +255,149 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     // ref.read(petsProvider.notifier).searchPets(newFilter);
   }
 
+  Widget _buildDrawer() {
+    final viewType = ref.watch(viewTypeProvider);
+
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: BoxDecoration(color: AppColors.tossBlue),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.pets, color: Colors.white, size: 48),
+                const SizedBox(height: 8),
+                const Text(
+                  'Paws for Home',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '구조동물 찾기',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: Icon(Icons.grid_view, color: AppColors.textPrimary),
+            title: const Text('그리드 보기'),
+            selected: viewType == ViewType.grid,
+            selectedTileColor: AppColors.tossBlue.withOpacity(0.1),
+            onTap: () async {
+              ref.read(viewTypeProvider.notifier).state = ViewType.grid;
+              await _saveViewType(ViewType.grid);
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.view_list, color: AppColors.textPrimary),
+            title: const Text('리스트 보기'),
+            selected: viewType == ViewType.list,
+            selectedTileColor: AppColors.tossBlue.withOpacity(0.1),
+            onTap: () async {
+              ref.read(viewTypeProvider.notifier).state = ViewType.list;
+              await _saveViewType(ViewType.list);
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.favorite, color: AppColors.tossBlue),
+            title: const Text('관심 동물'),
+            onTap: () {
+              Navigator.pop(context);
+              Future.delayed(const Duration(milliseconds: 250), () {
+                context.push('/pets/favorites');
+              });
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: Icon(Icons.settings, color: AppColors.textPrimary),
+            title: const Text('설정'),
+            onTap: () {
+              Navigator.pop(context);
+              // TODO: 설정 화면으로 이동
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.info, color: AppColors.textPrimary),
+            title: const Text('정보'),
+            onTap: () {
+              Navigator.pop(context);
+              // TODO: 정보 화면으로 이동
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPetList(List<AbandonmentItem> pets) {
+    final viewType = ref.watch(viewTypeProvider);
+
+    if (viewType == ViewType.grid) {
+      return MasonryGridView.count(
+        controller: _scrollController,
+        crossAxisCount: 3,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        padding: const EdgeInsets.all(12),
+        itemCount: pets.length + (_isLoadingMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == pets.length) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: CircularProgressIndicator(
+                  color: AppColors.primary,
+                  strokeCap: StrokeCap.round,
+                ),
+              ),
+            );
+          }
+
+          final pet = pets[index];
+          return PetCard(pet: pet);
+        },
+      );
+    } else {
+      return ListView.separated(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(16),
+        itemCount: pets.length + (_isLoadingMore ? 1 : 0),
+        separatorBuilder: (_, __) => SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          if (index == pets.length) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: CircularProgressIndicator(
+                  color: AppColors.primary,
+                  strokeCap: StrokeCap.round,
+                ),
+              ),
+            );
+          }
+
+          final pet = pets[index];
+          return PetListItem(
+            pet: pet,
+            onTap: () {
+              context.push('/pets/detail', extra: pet);
+            },
+          );
+        },
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final petsAsync = ref.watch(petsProvider);
@@ -236,6 +406,7 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      drawer: _buildDrawer(),
       appBar: MorphingAppBar(
         title: const Text(
           '구조동물 목록',
@@ -325,38 +496,16 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
                     );
                   }
 
-                  return ListView.separated(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: pets.length + (_isLoadingMore ? 1 : 0),
-                    separatorBuilder: (_, __) => SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      if (index == pets.length) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: CircularProgressIndicator(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        );
-                      }
-
-                      final pet = pets[index];
-                      return PetListItem(
-                        pet: pet,
-                        onTap: () {
-                          context.push('/pets/detail', extra: pet);
-                        },
-                      );
-                    },
-                  );
+                  return _buildPetList(pets);
                 },
                 loading: () => Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircularProgressIndicator(color: AppColors.primary),
+                      CircularProgressIndicator(
+                        color: AppColors.primary,
+                        strokeCap: StrokeCap.round,
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         '펫 목록을 불러오는 중...',

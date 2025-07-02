@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:paws_for_home/core/constants/app_colors.dart';
 import 'package:paws_for_home/shared/models/abandonment_response.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -73,26 +74,52 @@ class PetInfoRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (label == '보호소 전화')
-                  GestureDetector(
-                    onTap: () => _makePhoneCall(value!),
-                    child: Text(
-                      value!,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: AppColors.tossBlue,
-                        decoration: TextDecoration.underline,
+                Row(
+                  children: [
+                    Expanded(
+                      child: label == '보호소 전화'
+                          ? GestureDetector(
+                              onTap: () => _makePhoneCall(value!),
+                              child: Text(
+                                value!,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: AppColors.tossBlue,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            )
+                          : Text(
+                              value!,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                    ),
+                    if (label == '공고번호' || label == '유기번호')
+                      GestureDetector(
+                        onTap: () => _copyToClipboard(context, value!),
+                        child: Container(
+                          margin: const EdgeInsets.only(left: 8),
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.tossBlue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: AppColors.tossBlue.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.copy,
+                            size: 16,
+                            color: AppColors.tossBlue,
+                          ),
+                        ),
                       ),
-                    ),
-                  )
-                else
-                  Text(
-                    value!,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
+                  ],
+                ),
                 if ((label == '보호소 주소' || label == '발견장소') && value!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
@@ -133,6 +160,23 @@ class PetInfoRow extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _copyToClipboard(BuildContext context, String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$label이 클립보드에 복사되었습니다'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.tossBlue,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    }
   }
 
   void _makePhoneCall(String phoneNumber) async {

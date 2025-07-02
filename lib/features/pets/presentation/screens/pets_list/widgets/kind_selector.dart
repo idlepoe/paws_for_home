@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:paws_for_home/core/constants/app_colors.dart';
+import 'package:icons_flutter/icons_flutter.dart';
 
 class KindSelector extends StatelessWidget {
   final List<Map<String, dynamic>> kindList;
@@ -16,13 +17,13 @@ class KindSelector extends StatelessWidget {
   IconData _getKindIcon(String kindName) {
     switch (kindName) {
       case '개':
-        return Icons.pets;
+        return MaterialCommunityIcons.dog; // 개 아이콘
       case '고양이':
-        return Icons.pets_outlined;
+        return MaterialCommunityIcons.cat; // 고양이 아이콘
       case '기타':
-        return Icons.pets;
+        return MaterialCommunityIcons.paw; // 발바닥 아이콘
       default:
-        return Icons.pets;
+        return MaterialCommunityIcons.paw; // 발바닥 아이콘
     }
   }
 

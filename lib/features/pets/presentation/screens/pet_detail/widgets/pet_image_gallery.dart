@@ -71,7 +71,9 @@ class _PetImageGalleryState extends State<PetImageGallery> {
               placeholder: (context, url) => Container(
                 height: 240,
                 color: AppColors.divider,
-                child: const Center(child: CircularProgressIndicator()),
+                child: const Center(
+                  child: CircularProgressIndicator(strokeCap: StrokeCap.round),
+                ),
               ),
               errorWidget: (context, url, error) => Container(
                 height: 240,
@@ -134,7 +136,10 @@ class _PetImageGalleryState extends State<PetImageGallery> {
                         placeholder: (context, url) => Container(
                           color: AppColors.divider,
                           child: const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                              strokeCap: StrokeCap.round,
+                              strokeWidth: 2,
+                            ),
                           ),
                         ),
                         errorWidget: (context, url, error) => Container(

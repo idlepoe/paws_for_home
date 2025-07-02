@@ -49,7 +49,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 32),
-            const CircularProgressIndicator(color: AppColors.tossBlue),
+            const CircularProgressIndicator(
+              color: AppColors.tossBlue,
+              strokeCap: StrokeCap.round,
+            ),
           ],
         ),
       ),
