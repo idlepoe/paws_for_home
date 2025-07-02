@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:swipeable_page_route/swipeable_page_route.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:paws_for_home/core/constants/app_colors.dart';
 import 'package:paws_for_home/features/pets/domain/entities/pet_search_filter.dart';
@@ -323,15 +322,9 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
             title: const Text('설정'),
             onTap: () {
               Navigator.pop(context);
-              // TODO: 설정 화면으로 이동
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.info, color: AppColors.textPrimary),
-            title: const Text('정보'),
-            onTap: () {
-              Navigator.pop(context);
-              // TODO: 정보 화면으로 이동
+              Future.delayed(const Duration(milliseconds: 250), () {
+                context.push('/pets/settings');
+              });
             },
           ),
         ],
@@ -407,7 +400,7 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       drawer: _buildDrawer(),
-      appBar: MorphingAppBar(
+      appBar: AppBar(
         title: const Text(
           '구조동물 목록',
           style: TextStyle(
@@ -418,6 +411,7 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
         ),
         backgroundColor: AppColors.background,
         elevation: 0,
+        iconTheme: const IconThemeData(color: AppColors.tossBlue),
         actions: [
           IconButton(
             key: const ValueKey('search'),

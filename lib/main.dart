@@ -11,6 +11,7 @@ import 'package:paws_for_home/shared/models/abandonment_response.dart';
 import 'features/pets/presentation/screens/pet_detail/pet_detail_screen.dart';
 import 'features/pets/presentation/screens/pets_list/pets_list_screen.dart';
 import 'features/pets/presentation/screens/pets_list/favorite_pets_screen.dart';
+import 'features/settings/settings_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -92,6 +93,10 @@ final _router = GoRouter(
         GoRoute(
           path: 'favorites',
           builder: (context, state) => const FavoritePetsScreen(),
+        ),
+        GoRoute(
+          path: 'settings',
+          builder: (context, state) => const SettingsScreen(),
         ),
       ],
     ),
