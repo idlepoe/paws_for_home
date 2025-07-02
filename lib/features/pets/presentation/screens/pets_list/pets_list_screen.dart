@@ -517,25 +517,26 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        Icons.error_outline,
+                        Icons.pets,
                         size: 64,
-                        color: AppColors.error,
+                        color: AppColors.textSecondary,
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        '오류가 발생했습니다',
+                        '길 잃은 발바닥을 찾다가',
                         style: TextStyle(
-                          color: AppColors.error,
+                          color: AppColors.textPrimary,
                           fontSize: 18,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        error.toString(),
+                        '내가 길 잃었다 😅',
                         style: TextStyle(
                           color: AppColors.textSecondary,
-                          fontSize: 14,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
                         ),
                         textAlign: TextAlign.center,
                       ),
