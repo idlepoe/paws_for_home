@@ -306,6 +306,7 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
               Navigator.pop(context);
             },
           ),
+          const Divider(height: 2),
           ListTile(
             leading: Icon(Icons.favorite, color: AppColors.tossBlue),
             title: const Text('관심 동물'),
@@ -316,7 +317,7 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
               });
             },
           ),
-          const Divider(),
+          const Divider(height: 2),
           ListTile(
             leading: Icon(Icons.settings, color: AppColors.textPrimary),
             title: const Text('설정'),

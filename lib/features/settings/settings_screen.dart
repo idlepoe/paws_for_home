@@ -104,6 +104,149 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _showAppInfoDialog(BuildContext context) async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 앱 아이콘
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.tossBlue,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.pets, color: Colors.white, size: 32),
+                ),
+                const SizedBox(height: 20),
+
+                // 제목
+                const Text(
+                  '앱 정보',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 앱명
+                const Text(
+                  'Paws for Home',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // 버전
+                const Text(
+                  '버전 1.0.0',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // 데이터 소스 정보
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.tossBlue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '데이터 소스',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '농림축산식품부 농림축산검역본부\n국가동물보호정보시스템\n구조동물 조회 서비스',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // 개인정보 안내
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.security, color: Colors.green, size: 20),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          '어떠한 사용자 정보도 수집하지 않습니다',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // 확인 버튼
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.tossBlue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('확인'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _showLicenses(BuildContext context) async {
     showLicensePage(
       context: context,
@@ -211,6 +354,43 @@ class SettingsScreen extends StatelessWidget {
             ),
             child: Column(
               children: [
+                // 앱 정보
+                ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.tossBlue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.info_outline,
+                      color: AppColors.tossBlue,
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text(
+                    '앱 정보',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  subtitle: const Text(
+                    '데이터 소스 및 개인정보 안내',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.textSecondary,
+                  ),
+                  onTap: () => _showAppInfoDialog(context),
+                ),
+                const Divider(height: 1, indent: 72),
+
                 // 라이선스
                 ListTile(
                   leading: Container(
