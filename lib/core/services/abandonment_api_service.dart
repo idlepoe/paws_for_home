@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
+import 'package:flutter/foundation.dart';
 
 class AbandonmentApiService {
   static const String _serviceKey =
@@ -14,9 +15,17 @@ class AbandonmentApiService {
     _dio = Dio(
       BaseOptions(
         baseUrl: _baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-        headers: {'accept': 'application/json'},
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 30),
+        headers: {
+          'accept': 'application/json',
+          'User-Agent': 'PawsForHome/1.0',
+        },
+        // DNS 해석 실패 시 재시도 설정
+        validateStatus: (status) {
+          return status != null && status < 500;
+        },
       ),
     );
 
@@ -30,8 +39,26 @@ class AbandonmentApiService {
           _logResponse(response);
           handler.next(response);
         },
-        onError: (error, handler) {
+        onError: (error, handler) async {
           _logError(error);
+
+          // DNS 해석 실패 시 재시도
+          if (error.type == DioExceptionType.connectionError &&
+              error.message?.contains('Failed host lookup') == true) {
+            debugPrint('🔄 DNS 해석 실패 - 재시도 중...');
+
+            // 잠시 대기 후 재시도
+            await Future.delayed(const Duration(seconds: 2));
+
+            try {
+              final retryResponse = await _dio.fetch(error.requestOptions);
+              handler.resolve(retryResponse);
+              return;
+            } catch (retryError) {
+              debugPrint('❌ 재시도 실패: $retryError');
+            }
+          }
+
           handler.next(error);
         },
       ),
@@ -59,6 +86,24 @@ class AbandonmentApiService {
     _logger.e(
       '❌ API ERROR\nURI: ${error.requestOptions.uri}\nStatus Code: ${error.response?.statusCode}\nMessage: ${error.message}\nData: ${error.response?.data}',
     );
+
+    // Release 버전에서도 로그 출력
+    if (kDebugMode) {
+      print('=== DIO ERROR (DEBUG) ===');
+      print('URI: ${error.requestOptions.uri}');
+      print('Status Code: ${error.response?.statusCode}');
+      print('Message: ${error.message}');
+      print('Data: ${error.response?.data}');
+      print('========================');
+    } else {
+      // Release 버전에서는 debugPrint 사용
+      debugPrint('=== DIO ERROR (RELEASE) ===');
+      debugPrint('URI: ${error.requestOptions.uri}');
+      debugPrint('Status Code: ${error.response?.statusCode}');
+      debugPrint('Message: ${error.message}');
+      debugPrint('Data: ${error.response?.data}');
+      debugPrint('==========================');
+    }
   }
 
   Future<Map<String, dynamic>> getAbandonmentData({

@@ -148,27 +148,6 @@ lib/
 - Android Studio / VS Code
 - 공공데이터포털 API 키
 
-### 설치 단계
-
-1. **저장소 클론**
-```bash
-git clone https://github.com/your-username/paws_for_home.git
-cd paws_for_home
-```
-
-2. **의존성 설치**
-```bash
-flutter pub get
-```
-
-3. **API 키 설정**
-   - `lib/core/services/abandonment_api_service.dart`에서 `serviceKey` 변수에 공공데이터포털 API 키 입력
-
-4. **앱 실행**
-```bash
-flutter run
-```
-
 ## 🎯 주요 화면
 
 ### 📋 펫 목록 화면
@@ -213,18 +192,6 @@ flutter run --debug
 # 릴리즈 모드로 실행
 flutter run --release
 ```
-
-## 📄 라이선스
-
-이 프로젝트는 MIT 라이선스 하에 배포됩니다.
-
-## 🤝 기여하기
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
 
 ## 📞 문의
 
