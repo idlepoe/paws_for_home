@@ -78,13 +78,7 @@ class SearchConditions extends ConsumerWidget {
     final filter = ref.watch(searchFilterProvider);
     final conditions = <String>[];
 
-    // 상태 조건
-    if (filter.state != null) {
-      final stateName = _getStateName(filter.state!);
-      if (stateName.isNotEmpty) {
-        conditions.add('상태: $stateName');
-      }
-    }
+    // 상태 조건은 별도 선택기로 관리되므로 여기서는 제외
 
     // 중성화 조건
     if (filter.neuterYn != null) {

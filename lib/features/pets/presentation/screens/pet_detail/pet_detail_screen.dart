@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:swipeable_page_route/swipeable_page_route.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:paws_for_home/core/constants/app_colors.dart';
 import 'package:paws_for_home/shared/models/abandonment_response.dart';
 import 'package:paws_for_home/features/pets/data/repositories/pet_repository_impl.dart';
@@ -296,22 +296,20 @@ class _PetDetailScreenState extends State<PetDetailScreen> {
                 const SizedBox(height: 32),
               ],
             ),
-      bottomNavigationBar: _FavoriteButton(
-        desertionNo: _currentItem?.desertionNo ?? '',
-      ),
+      bottomNavigationBar: _BottomButtons(item: _currentItem!),
     );
   }
 }
 
-class _FavoriteButton extends StatefulWidget {
-  final String desertionNo;
-  const _FavoriteButton({required this.desertionNo});
+class _BottomButtons extends StatefulWidget {
+  final AbandonmentItem item;
+  const _BottomButtons({required this.item});
 
   @override
-  State<_FavoriteButton> createState() => _FavoriteButtonState();
+  State<_BottomButtons> createState() => _BottomButtonsState();
 }
 
-class _FavoriteButtonState extends State<_FavoriteButton> {
+class _BottomButtonsState extends State<_BottomButtons> {
   bool _isFavorite = false;
 
   @override
@@ -324,23 +322,62 @@ class _FavoriteButtonState extends State<_FavoriteButton> {
     final prefs = await SharedPreferences.getInstance();
     final favorites = prefs.getStringList('favorite_pets') ?? [];
     setState(() {
-      _isFavorite = favorites.contains(widget.desertionNo);
+      _isFavorite = favorites.contains(widget.item.desertionNo ?? '');
     });
   }
 
   Future<void> _toggleFavorite() async {
     final prefs = await SharedPreferences.getInstance();
     final favorites = prefs.getStringList('favorite_pets') ?? [];
+    final desertionNo = widget.item.desertionNo ?? '';
+
     setState(() {
       if (_isFavorite) {
-        favorites.remove(widget.desertionNo);
+        favorites.remove(desertionNo);
         _isFavorite = false;
       } else {
-        favorites.add(widget.desertionNo);
+        favorites.add(desertionNo);
         _isFavorite = true;
       }
       prefs.setStringList('favorite_pets', favorites);
     });
+  }
+
+  String _formatDate(String? date) {
+    if (date == null || date.length != 8) return '';
+    return '${date.substring(0, 4)}-${date.substring(4, 6)}-${date.substring(6, 8)}';
+  }
+
+  void _sharePetInfo() {
+    final petInfo =
+        '''
+🐾 구조동물 정보
+
+📋 기본 정보
+• 품종: ${widget.item.kindFullNm ?? widget.item.kindNm}
+• 공고번호: ${widget.item.noticeNo}
+• 유기번호: ${widget.item.desertionNo}
+• 상태: ${widget.item.processState}
+
+📍 발견 정보
+• 발견일: ${widget.item.happenDt != null ? _formatDate(widget.item.happenDt!) : '정보 없음'}
+• 발견장소: ${widget.item.happenPlace ?? '정보 없음'}
+• 특징: ${widget.item.specialMark ?? '정보 없음'}
+• 색상: ${widget.item.colorCd ?? '정보 없음'}
+• 나이: ${widget.item.age ?? '정보 없음'}
+• 체중: ${widget.item.weight ?? '정보 없음'}
+
+🏥 보호 정보
+• 보호소명: ${widget.item.careNm ?? '정보 없음'}
+• 보호소 주소: ${widget.item.careAddr ?? '정보 없음'}
+• 보호소 전화: ${widget.item.careTel ?? '정보 없음'}
+• 보호 시작일: ${widget.item.noticeSdt != null ? _formatDate(widget.item.noticeSdt!) : '정보 없음'}
+• 보호 종료일: ${widget.item.noticeEdt != null ? _formatDate(widget.item.noticeEdt!) : '정보 없음'}
+
+💝 유기동물 문의는 보호센터에 연락하시기 바랍니다!
+''';
+
+    Share.share(petInfo, subject: '구조동물 정보 공유');
   }
 
   @override
@@ -348,26 +385,55 @@ class _FavoriteButtonState extends State<_FavoriteButton> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isFavorite
-                  ? AppColors.tossBlue
-                  : AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
+        child: Row(
+          children: [
+            // 하트 아이콘 버튼 (관심 등록/해제)
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: _isFavorite ? AppColors.tossBlue : Colors.white,
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _isFavorite ? AppColors.tossBlue : AppColors.primary,
+                  width: 2,
+                ),
               ),
-              textStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+              child: IconButton(
+                onPressed: _toggleFavorite,
+                icon: Icon(
+                  _isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: _isFavorite ? Colors.white : AppColors.primary,
+                  size: 24,
+                ),
               ),
             ),
-            onPressed: _toggleFavorite,
-            child: Text(_isFavorite ? '관심 해제' : '관심 등록'),
-          ),
+
+            const SizedBox(width: 12),
+
+            // 공유하기 버튼
+            Expanded(
+              child: SizedBox(
+                height: 48,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onPressed: _sharePetInfo,
+                  icon: const Icon(Icons.share, size: 20),
+                  label: const Text('공유하기'),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

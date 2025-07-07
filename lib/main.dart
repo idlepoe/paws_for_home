@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:swipeable_page_route/swipeable_page_route.dart';
+
 import 'package:paws_for_home/core/services/abandonment_api_service.dart';
 import 'package:paws_for_home/features/splash/splash_screen.dart';
 import 'package:paws_for_home/features/pets/presentation/screens/search_filter/search_filter_screen.dart';
@@ -80,14 +80,11 @@ final _router = GoRouter(
           pageBuilder: (context, state) {
             final AbandonmentItem? item = state.extra as AbandonmentItem?;
             if (item == null) {
-              return SwipeablePage(
-                builder: (context) =>
-                    const Scaffold(body: Center(child: Text('잘못된 접근입니다.'))),
+              return MaterialPage(
+                child: const Scaffold(body: Center(child: Text('잘못된 접근입니다.'))),
               );
             }
-            return SwipeablePage(
-              builder: (context) => PetDetailScreen(item: item),
-            );
+            return MaterialPage(child: PetDetailScreen(item: item));
           },
         ),
         GoRoute(

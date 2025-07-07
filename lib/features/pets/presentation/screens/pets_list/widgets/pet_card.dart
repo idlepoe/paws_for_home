@@ -4,22 +4,65 @@ import 'package:paws_for_home/shared/models/abandonment_response.dart';
 import 'package:paws_for_home/core/constants/app_colors.dart';
 import 'package:go_router/go_router.dart';
 import 'package:icons_flutter/icons_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'pet_thumbnail.dart';
 
-class PetCard extends StatelessWidget {
+class PetCard extends StatefulWidget {
   final AbandonmentItem pet;
 
   const PetCard({super.key, required this.pet});
 
   @override
+  State<PetCard> createState() => _PetCardState();
+}
+
+class _PetCardState extends State<PetCard> {
+  bool _isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavoriteState();
+  }
+
+  Future<void> _loadFavoriteState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final favorites = prefs.getStringList('favorite_pets') ?? [];
+    setState(() {
+      _isFavorite = favorites.contains(widget.pet.desertionNo ?? '');
+    });
+  }
+
+  // 관심 상태를 새로고침하는 메서드
+  Future<void> refreshFavoriteState() async {
+    await _loadFavoriteState();
+  }
+
+  @override
+  void didUpdateWidget(PetCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 위젯이 업데이트될 때 관심 상태 새로고침
+    _loadFavoriteState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        context.push('/pets/detail', extra: pet);
+      onTap: () async {
+        // 상세 화면으로 진입하고 결과를 기다림
+        await context.push('/pets/detail', extra: widget.pet);
+        // 상세 화면에서 돌아온 후 관심 상태 새로고침
+        if (mounted) {
+          await refreshFavoriteState();
+        }
       },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          border: _isFavorite
+              ? Border.all(color: AppColors.tossBlue, width: 2)
+              : null,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.08),
@@ -28,224 +71,171 @@ class PetCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            // 이미지 섹션
-            if (pet.popfile1 != null && pet.popfile1!.isNotEmpty)
-              Stack(
-                children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 이미지 섹션
+                if (widget.pet.popfile1 != null &&
+                    widget.pet.popfile1!.isNotEmpty)
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(16),
                     ),
-                    child: CachedNetworkImage(
-                      imageUrl: pet.popfile1!,
-                      height: 140,
+                    child: PetThumbnail(
+                      pet: widget.pet,
                       width: double.infinity,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        height: 140,
-                        color: AppColors.divider,
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            strokeCap: StrokeCap.round,
+                      height: 140,
+                      borderRadius: 0,
+                      showKindChip: true,
+                      showStateChip: true,
+                      padding: const EdgeInsets.all(8),
+                    ),
+                  ),
+
+                // 정보 섹션
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 발견 정보
+                      if (widget.pet.happenPlace != null &&
+                          widget.pet.happenPlace!.isNotEmpty)
+                        Text(
+                          widget.pet.happenPlace!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+
+                      if (widget.pet.happenDt != null)
+                        Text(
+                          '발견일: ${_formatDate(widget.pet.happenDt!)}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
                           ),
                         ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        height: 140,
-                        color: AppColors.gray,
-                        child: const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.error, color: AppColors.textSecondary),
-                            SizedBox(height: 4),
-                            Text(
-                              '이미지 로드 실패',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 10,
+
+                      if (widget.pet.careNm != null &&
+                          widget.pet.careNm!.isNotEmpty)
+                        Text(
+                          widget.pet.careNm!,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.tossBlue,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+
+                      const SizedBox(height: 8),
+
+                      // 하단 칩들
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          if (widget.pet.sexCd != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: widget.pet.sexCd == 'M'
+                                    ? Colors.orange.withOpacity(0.1)
+                                    : Colors.pink.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: widget.pet.sexCd == 'M'
+                                      ? Colors.orange.withOpacity(0.3)
+                                      : Colors.pink.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                widget.pet.sexCd == 'M' ? '수컷' : '암컷',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: widget.pet.sexCd == 'M'
+                                      ? Colors.orange[700]
+                                      : Colors.pink[700],
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  // 축종 칩 (좌측 상단)
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _getPetIcon(pet.upKindCd),
-                            color: Colors.white,
-                            size: 12,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _formatKindName(pet.kindFullNm),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
+                          if (widget.pet.neuterYn != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: widget.pet.neuterYn == 'Y'
+                                    ? Colors.deepOrange.withOpacity(0.1)
+                                    : Colors.orange.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: widget.pet.neuterYn == 'Y'
+                                      ? Colors.deepOrange.withOpacity(0.3)
+                                      : Colors.orange.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                widget.pet.neuterYn == 'Y' ? '중성화' : '미중성화',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: widget.pet.neuterYn == 'Y'
+                                      ? Colors.deepOrange[700]
+                                      : Colors.orange[700],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ),
-                          ),
                         ],
                       ),
-                    ),
-                  ),
-                  // 상태 칩 (좌측 하단)
-                  if (pet.processState != null)
-                    Positioned(
-                      bottom: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: pet.processState == '공고중'
-                              ? Colors.blue.withOpacity(0.9)
-                              : Colors.green.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          pet.processState!,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-
-            // 정보 섹션
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 발견 정보
-                  if (pet.happenPlace != null && pet.happenPlace!.isNotEmpty)
-                    Text(
-                      pet.happenPlace!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                  if (pet.happenDt != null)
-                    Text(
-                      '발견일: ${_formatDate(pet.happenDt!)}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-
-                  if (pet.careNm != null && pet.careNm!.isNotEmpty)
-                    Text(
-                      pet.careNm!,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppColors.tossBlue,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                  const SizedBox(height: 8),
-
-                  // 하단 칩들
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: [
-                      if (pet.sexCd != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: pet.sexCd == 'M'
-                                ? Colors.orange.withOpacity(0.1)
-                                : Colors.pink.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: pet.sexCd == 'M'
-                                  ? Colors.orange.withOpacity(0.3)
-                                  : Colors.pink.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            pet.sexCd == 'M' ? '수컷' : '암컷',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: pet.sexCd == 'M'
-                                  ? Colors.orange[700]
-                                  : Colors.pink[700],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      if (pet.neuterYn != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: pet.neuterYn == 'Y'
-                                ? Colors.deepOrange.withOpacity(0.1)
-                                : Colors.orange.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: pet.neuterYn == 'Y'
-                                  ? Colors.deepOrange.withOpacity(0.3)
-                                  : Colors.orange.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            pet.neuterYn == 'Y' ? '중성화' : '미중성화',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: pet.neuterYn == 'Y'
-                                  ? Colors.deepOrange[700]
-                                  : Colors.orange[700],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+
+            // 관심동물 표시 (우측 상단)
+            if (_isFavorite)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.tossBlue,
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(14),
+                      bottomLeft: Radius.circular(14),
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  child: const Text(
+                    '관심',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -258,31 +248,5 @@ class PetCard extends StatelessWidget {
       return '${date.substring(0, 4)}-${date.substring(4, 6)}-${date.substring(6, 8)}';
     }
     return date;
-  }
-
-  String _formatKindName(String? kindFullNm) {
-    if (kindFullNm == null || kindFullNm.isEmpty) {
-      return '품종 미상';
-    }
-
-    // [개]를 제거
-    String formatted = kindFullNm.replaceAll('[개]', '');
-    // [고양이]를 제거
-    formatted = formatted.replaceAll('[고양이]', '');
-
-    return formatted;
-  }
-
-  IconData _getPetIcon(String? upKindCd) {
-    switch (upKindCd) {
-      case '417000': // 개
-        return MaterialCommunityIcons.dog;
-      case '422400': // 고양이
-        return MaterialCommunityIcons.cat;
-      case '429900': // 기타
-        return MaterialCommunityIcons.paw;
-      default:
-        return MaterialCommunityIcons.paw;
-    }
   }
 }

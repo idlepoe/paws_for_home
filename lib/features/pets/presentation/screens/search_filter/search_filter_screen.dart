@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:swipeable_page_route/swipeable_page_route.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:logger/logger.dart';
@@ -39,7 +38,7 @@ class SearchFilterScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: MorphingAppBar(
+      appBar: AppBar(
         title: const Text(
           '검색 조건',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
@@ -96,6 +95,18 @@ class SearchFilterScreen extends ConsumerWidget {
               filterNotifier,
             ),
             const SizedBox(height: 16),
+
+            // 품종 선택 (축종에 따라 동적 표시)
+            if (filter.upkind != null && filter.upkind!.isNotEmpty)
+              _buildKindDropdown(
+                context,
+                ref,
+                filter,
+                dropdownData,
+                filterNotifier,
+              ),
+            if (filter.upkind != null && filter.upkind!.isNotEmpty)
+              const SizedBox(height: 16),
 
             // 상태 선택
             _buildDropdown(
@@ -644,6 +655,132 @@ class SearchFilterScreen extends ConsumerWidget {
             }
           }
         },
+      ),
+    );
+  }
+
+  Widget _buildKindDropdown(
+    BuildContext context,
+    WidgetRef ref,
+    PetSearchFilter filter,
+    Map<String, dynamic> dropdownData,
+    SearchFilterNotifier notifier,
+  ) {
+    // 선택된 축종에 따른 품종 데이터 가져오기
+    final kindData =
+        dropdownData['kind_data'] as Map<String, List<Map<String, dynamic>>>?;
+    final selectedUpkind = filter.upkind;
+
+    if (kindData == null ||
+        selectedUpkind == null ||
+        !kindData.containsKey(selectedUpkind)) {
+      return const SizedBox.shrink();
+    }
+
+    final kindList = kindData[selectedUpkind] ?? [];
+    final currentKind = filter.kind;
+
+    // 중복 제거 및 안전한 items 생성
+    final safeItems = <Map<String, dynamic>>[];
+    for (final item in kindList) {
+      final code = item['code']?.toString();
+      final name = item['name']?.toString() ?? code ?? '';
+      if (code != null &&
+          !safeItems.any((element) => element['code'] == code)) {
+        safeItems.add({'code': code, 'name': name});
+      }
+    }
+
+    // 현재 선택된 값 찾기
+    Map<String, dynamic>? selectedItem;
+    if (currentKind != null && currentKind.isNotEmpty) {
+      selectedItem = safeItems.firstWhere(
+        (item) => item['code'] == currentKind,
+        orElse: () => {'code': '', 'name': ''},
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: DropdownButtonFormField<String?>(
+              value: currentKind,
+              isExpanded: true,
+              menuMaxHeight: MediaQuery.of(context).size.height * 0.3,
+              decoration: InputDecoration(
+                labelText: '품종',
+                labelStyle: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.primary),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+              dropdownColor: Colors.white,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+              items: [
+                DropdownMenuItem<String?>(
+                  value: '',
+                  child: Text(
+                    '선택 안함',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                ),
+                ...safeItems.map(
+                  (item) => DropdownMenuItem<String?>(
+                    value: item['code']?.toString(),
+                    child: Text(item['name']?.toString() ?? ''),
+                  ),
+                ),
+              ],
+              onChanged: (String? value) {
+                ref.read(searchFilterProvider.notifier).setField('kind', value);
+              },
+            ),
+          ),
+          if (currentKind != null && currentKind.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(left: 8),
+              child: IconButton(
+                onPressed: () {
+                  ref
+                      .read(searchFilterProvider.notifier)
+                      .setField('kind', null);
+                },
+                icon: const Icon(Icons.close, color: Colors.grey, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.grey.shade100,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.all(8),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

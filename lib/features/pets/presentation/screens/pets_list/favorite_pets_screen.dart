@@ -8,6 +8,7 @@ import 'package:paws_for_home/features/pets/data/datasources/pet_remote_data_sou
 import 'package:paws_for_home/core/services/abandonment_api_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'widgets/pet_thumbnail.dart';
 
 class FavoritePetsScreen extends ConsumerStatefulWidget {
   const FavoritePetsScreen({super.key});
@@ -153,6 +154,7 @@ class _FavoritePetsScreenState extends ConsumerState<FavoritePetsScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.tossBlue, width: 2),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.08),
@@ -163,120 +165,95 @@ class _FavoritePetsScreenState extends ConsumerState<FavoritePetsScreen> {
         ),
         child: Row(
           children: [
-            // 이미지 + 상태 칩 Stack
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    bottomLeft: Radius.circular(16),
-                  ),
-                  child: CachedNetworkImage(
-                    imageUrl: pet.popfile1 ?? '',
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      width: 100,
-                      height: 100,
-                      color: AppColors.divider,
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          strokeCap: StrokeCap.round,
-                        ),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      width: 100,
-                      height: 100,
-                      color: AppColors.gray,
-                      child: const Icon(
-                        Icons.error,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ),
-                // 상태 칩 (우측 상단)
-                if (pet.processState != null)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: pet.processState == '공고중'
-                            ? Colors.blue.withOpacity(0.9)
-                            : Colors.green.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        pet.processState!,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+            PetThumbnail(
+              pet: pet,
+              width: 170,
+              height: 170,
+              borderRadius: 12,
+              showKindChip: true,
+              showStateChip: true,
+              padding: const EdgeInsets.all(4),
             ),
-            // 정보 섹션
+            const SizedBox(width: 16),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 품종
-                    Text(
-                      pet.kindFullNm ?? pet.kindNm ?? '품종 미상',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    // 공고번호
-                    if (pet.noticeNo != null)
-                      Text(
-                        '공고번호: ${pet.noticeNo}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    const SizedBox(height: 4),
-                    // 발견장소
                     if (pet.happenPlace != null && pet.happenPlace!.isNotEmpty)
                       Text(
                         pet.happenPlace!,
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    const SizedBox(height: 4),
-                    // 발견일
                     if (pet.happenDt != null)
                       Text(
                         '발견일: ${_formatDate(pet.happenDt)}',
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: 11,
                           color: AppColors.textSecondary,
                         ),
                       ),
+                    if (pet.careNm != null && pet.careNm!.isNotEmpty)
+                      Text(
+                        pet.careNm!,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.tossBlue,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    // 특징 정보
+                    if (pet.specialMark != null && pet.specialMark!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          '특징: ${pet.specialMark}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    // 색상 정보
+                    if (pet.colorCd != null && pet.colorCd!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          '색상: ${pet.colorCd}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    // 나이 정보
+                    if (pet.age != null && pet.age!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          '나이: ${pet.age}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     const SizedBox(height: 8),
-                    // 하단 칩들
                     Wrap(
                       spacing: 4,
                       runSpacing: 4,
@@ -339,6 +316,28 @@ class _FavoritePetsScreenState extends ConsumerState<FavoritePetsScreen> {
                               ),
                             ),
                           ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.tossBlue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: AppColors.tossBlue,
+                              width: 1,
+                            ),
+                          ),
+                          child: const Text(
+                            '관심',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppColors.tossBlue,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],

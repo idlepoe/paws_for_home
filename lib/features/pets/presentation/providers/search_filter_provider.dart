@@ -8,8 +8,7 @@ import 'dart:convert';
 final logger = Logger();
 
 // 드롭다운 데이터 상태 관리
-class DropdownDataNotifier
-    extends StateNotifier<Map<String, List<Map<String, dynamic>>>> {
+class DropdownDataNotifier extends StateNotifier<Map<String, dynamic>> {
   DropdownDataNotifier() : super({}) {
     _loadData();
   }
@@ -54,12 +53,17 @@ class DropdownDataNotifier
         {'code': 'Q', 'name': '미상'},
       ];
 
+      // 품종 데이터 로드
+      final kindData = await _loadKindData(prefs);
+
       logger.i('✅ 드롭다운 데이터 로드 완료');
       logger.i('시도: ${sidoList.length}개');
+      logger.i('품종 데이터: ${kindData.length}개 축종');
 
       state = {
         'sido': sidoList,
         'upkind': upkindList,
+        'kind_data': kindData,
         'state': stateList,
         'neuter': neuterList,
         'sex': sexList,
@@ -98,13 +102,40 @@ class DropdownDataNotifier
   Future<void> refresh() async {
     await _loadData();
   }
+
+  // 품종 데이터 로드 메서드
+  Future<Map<String, List<Map<String, dynamic>>>> _loadKindData(
+    SharedPreferences prefs,
+  ) async {
+    final kindData = <String, List<Map<String, dynamic>>>{};
+
+    final upkindCodes = [
+      {'code': '417000', 'name': '개'},
+      {'code': '422400', 'name': '고양이'},
+      {'code': '429900', 'name': '기타'},
+    ];
+
+    for (final upkind in upkindCodes) {
+      final upkindCode = upkind['code']!;
+      final storageKey = 'kind_$upkindCode';
+
+      final kindRaw = prefs.getString(storageKey);
+      if (kindRaw != null && kindRaw.isNotEmpty) {
+        final kindList = _parseJsonList(kindRaw);
+        kindData[upkindCode] = kindList;
+        logger.i('✅ ${upkind['name']} 품종 데이터 로드: ${kindList.length}개');
+      } else {
+        kindData[upkindCode] = [];
+        logger.w('⚠️ ${upkind['name']} 품종 데이터가 없음');
+      }
+    }
+
+    return kindData;
+  }
 }
 
 final dropdownDataProvider =
-    StateNotifierProvider<
-      DropdownDataNotifier,
-      Map<String, List<Map<String, dynamic>>>
-    >((ref) {
+    StateNotifierProvider<DropdownDataNotifier, Map<String, dynamic>>((ref) {
       return DropdownDataNotifier();
     });
 
@@ -181,6 +212,9 @@ class SearchFilterNotifier extends StateNotifier<PetSearchFilter> {
       state = state.copyWith(orgCd: null, careRegNo: null);
     } else if (key == 'org_cd') {
       state = state.copyWith(careRegNo: null);
+    } else if (key == 'upkind') {
+      // 축종이 변경되면 품종 선택 초기화
+      state = state.copyWith(kind: null);
     }
   }
 
@@ -202,7 +236,7 @@ class SearchFilterNotifier extends StateNotifier<PetSearchFilter> {
   }
 
   void reset() {
-    state = const PetSearchFilter();
+    state = const PetSearchFilter().copyWith(state: 'notice');
   }
 
   String _dateToString(DateTime date) {
@@ -212,8 +246,8 @@ class SearchFilterNotifier extends StateNotifier<PetSearchFilter> {
 
 final searchFilterProvider =
     StateNotifierProvider<SearchFilterNotifier, PetSearchFilter>((ref) {
-      // 기본 시도(서울특별시)로 초기화
+      // 기본 시도(서울특별시)와 상태(공고중)로 초기화
       return SearchFilterNotifier(
-        const PetSearchFilter().copyWith(uprCd: '6110000'),
+        const PetSearchFilter().copyWith(uprCd: '6110000', state: 'notice'),
       );
     });

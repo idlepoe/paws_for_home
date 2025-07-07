@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'widgets/sido_selector.dart';
 import 'widgets/kind_selector.dart';
+import 'widgets/state_selector.dart';
 import 'widgets/search_conditions.dart';
 import 'widgets/pet_list_item.dart';
 
@@ -31,6 +32,10 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
   bool _isLoadingMore = false;
   String? _selectedSidoCode;
   String? _selectedKindCode;
+  String? _selectedStateCode;
+
+  // 개별 아이템 refresh를 위한 상태 관리
+  final Map<String, bool> _refreshStates = {};
 
   @override
   void initState() {
@@ -38,12 +43,14 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     _scrollController.addListener(_onScroll);
     _loadSavedSidoCode();
     _loadSavedKindCode();
+    _loadSavedStateCode();
     _loadSavedViewType();
 
     // 검색 조건 변경 시 시도 선택도 업데이트
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _ensureSidoSelectedAndSearch();
       _ensureKindSelectedAndSearch();
+      _ensureStateSelectedAndSearch();
     });
   }
 
@@ -51,6 +58,19 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 화면이 포커스를 받을 때마다 관심 상태 새로고침
+    _refreshFavoriteStates();
+  }
+
+  // 관심 상태 새로고침을 위한 메서드
+  void _refreshFavoriteStates() {
+    // PetCard와 PetListItem의 관심 상태를 새로고침하기 위해 setState 호출
+    setState(() {});
   }
 
   void _onScroll() {
@@ -112,6 +132,22 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     }
   }
 
+  Future<void> _loadSavedStateCode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedCode = prefs.getString('selected_state_code');
+    if (savedCode != null) {
+      setState(() {
+        _selectedStateCode = savedCode;
+      });
+    } else {
+      // 저장된 상태 코드가 없으면 기본 상태(공고중)로 설정
+      setState(() {
+        _selectedStateCode = 'notice';
+      });
+      await _saveStateCode('notice');
+    }
+  }
+
   Future<void> _loadSavedViewType() async {
     final prefs = await SharedPreferences.getInstance();
     final savedViewType = prefs.getString('view_type');
@@ -159,6 +195,23 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     ref.read(petsProvider.notifier).searchPets(newFilter);
   }
 
+  void _onStateSelected(String? stateCode) async {
+    setState(() {
+      _selectedStateCode = stateCode;
+    });
+
+    // SharedPreferences에 저장
+    await _saveStateCode(stateCode);
+
+    // 필터 업데이트
+    final currentFilter = ref.read(searchFilterProvider);
+    final newFilter = currentFilter.copyWith(state: stateCode);
+    ref.read(searchFilterProvider.notifier).updateFilter(newFilter);
+
+    // 펫 목록 새로고침
+    ref.read(petsProvider.notifier).searchPets(newFilter);
+  }
+
   Future<void> _saveSidoCode(String? sidoCode) async {
     final prefs = await SharedPreferences.getInstance();
     if (sidoCode != null) {
@@ -174,6 +227,15 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
       await prefs.setString('selected_kind_code', kindCode);
     } else {
       await prefs.remove('selected_kind_code');
+    }
+  }
+
+  Future<void> _saveStateCode(String? stateCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (stateCode != null) {
+      await prefs.setString('selected_state_code', stateCode);
+    } else {
+      await prefs.remove('selected_state_code');
     }
   }
 
@@ -235,13 +297,26 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     }
   }
 
+  void _ensureStateSelectedAndSearch() {
+    // 저장된 상태 코드가 있으면 사용
+    if (_selectedStateCode != null) {
+      final currentFilter = ref.read(searchFilterProvider);
+      if (currentFilter.state != _selectedStateCode) {
+        final newFilter = currentFilter.copyWith(state: _selectedStateCode);
+        ref.read(searchFilterProvider.notifier).updateFilter(newFilter);
+        ref.read(petsProvider.notifier).searchPets(newFilter);
+      }
+    } else {
+      // 저장된 상태 코드가 없으면 기본 상태(공고중)로 설정
+      _onStateSelected('notice');
+    }
+  }
+
   void _removeCondition(int index, String condition) {
     final notifier = ref.read(searchFilterProvider.notifier);
 
     // 조건에 따라 해당 필드 삭제 (빈 문자열로 설정)
-    if (condition.startsWith('상태:')) {
-      notifier.setField('state', '');
-    } else if (condition.startsWith('중성화:')) {
+    if (condition.startsWith('중성화:')) {
       notifier.setField('neuter_yn', '');
     } else if (condition.startsWith('성별:')) {
       notifier.setField('sex_cd', '');
@@ -358,7 +433,12 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
           }
 
           final pet = pets[index];
-          return PetCard(pet: pet);
+          return PetCard(
+            key: ValueKey(
+              'pet_card_${pet.desertionNo}_${_refreshStates[pet.desertionNo] ?? false}',
+            ),
+            pet: pet,
+          );
         },
       );
     } else {
@@ -382,9 +462,20 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
 
           final pet = pets[index];
           return PetListItem(
+            key: ValueKey(
+              'pet_list_item_${pet.desertionNo}_${_refreshStates[pet.desertionNo] ?? false}',
+            ),
             pet: pet,
-            onTap: () {
-              context.push('/pets/detail', extra: pet);
+            onTap: () async {
+              // 상세 화면으로 진입하고 결과를 기다림
+              await context.push('/pets/detail', extra: pet);
+              // 상세 화면에서 돌아온 후 해당 아이템만 refresh
+              if (mounted) {
+                setState(() {
+                  _refreshStates[pet.desertionNo ?? ''] =
+                      !(_refreshStates[pet.desertionNo ?? ''] ?? false);
+                });
+              }
             },
           );
         },
@@ -443,6 +534,11 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
             kindList: dropdownData['upkind'] ?? [],
             selectedKindCode: _selectedKindCode,
             onKindSelected: _onKindSelected,
+          ),
+          // 상태 선택기
+          StateSelector(
+            selectedStateCode: _selectedStateCode,
+            onStateSelected: _onStateSelected,
           ),
           // 검색 조건 표시
           SearchConditions(onRemoveCondition: _removeCondition),
