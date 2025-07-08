@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:paws_for_home/core/constants/app_colors.dart';
 
-class SidoSelector extends StatelessWidget {
+class SidoSelector extends StatefulWidget {
   final List<Map<String, dynamic>> sidoList;
   final String? selectedSidoCode;
   final Function(String?) onSidoSelected;
@@ -12,6 +12,74 @@ class SidoSelector extends StatelessWidget {
     required this.selectedSidoCode,
     required this.onSidoSelected,
   });
+
+  @override
+  State<SidoSelector> createState() => _SidoSelectorState();
+}
+
+class _SidoSelectorState extends State<SidoSelector> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    // 위젯이 빌드된 후 선택된 시도까지 스크롤
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToSelectedSido();
+    });
+  }
+
+  @override
+  void didUpdateWidget(SidoSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 선택된 시도가 변경되면 해당 위치로 스크롤
+    if (oldWidget.selectedSidoCode != widget.selectedSidoCode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToSelectedSido();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSelectedSido() {
+    if (widget.selectedSidoCode == null || widget.sidoList.isEmpty) return;
+
+    // 선택된 시도의 인덱스 찾기
+    final selectedIndex = widget.sidoList.indexWhere(
+      (sido) => sido['code']?.toString() == widget.selectedSidoCode,
+    );
+
+    if (selectedIndex != -1 && _scrollController.hasClients) {
+      // 더 정확한 스크롤을 위해 약간의 지연 후 실행
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (!mounted || !_scrollController.hasClients) return;
+
+        // 아이템의 대략적인 너비 계산 (패딩, 마진 포함)
+        const itemWidth = 120.0; // 대략적인 아이템 너비
+        const margin = 12.0; // 아이템 간 마진
+        const padding = 16.0; // ListView 패딩
+
+        // 선택된 아이템의 위치 계산
+        final targetOffset = (itemWidth + margin) * selectedIndex - padding;
+
+        // 화면 중앙에 오도록 조정
+        final screenWidth = MediaQuery.of(context).size.width;
+        final adjustedOffset = targetOffset - (screenWidth - itemWidth) / 2;
+
+        // 스크롤 실행
+        _scrollController.animateTo(
+          adjustedOffset.clamp(0.0, _scrollController.position.maxScrollExtent),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      });
+    }
+  }
 
   IconData _getSidoIcon(String sidoName) {
     switch (sidoName) {
@@ -56,26 +124,27 @@ class SidoSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (sidoList.isEmpty) return SizedBox.shrink();
+    if (widget.sidoList.isEmpty) return SizedBox.shrink();
 
     return Container(
       height: 60,
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: ListView.builder(
+        controller: _scrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: sidoList.length,
+        itemCount: widget.sidoList.length,
         itemBuilder: (context, index) {
-          final sido = sidoList[index];
+          final sido = widget.sidoList[index];
           final code = sido['code']?.toString();
           final name = sido['name']?.toString() ?? '';
-          final isSelected = selectedSidoCode == code;
+          final isSelected = widget.selectedSidoCode == code;
           final icon = _getSidoIcon(name);
 
           return Container(
             margin: const EdgeInsets.only(right: 12),
             child: GestureDetector(
-              onTap: () => onSidoSelected(code),
+              onTap: () => widget.onSidoSelected(code),
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,

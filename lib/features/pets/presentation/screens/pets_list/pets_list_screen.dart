@@ -52,6 +52,13 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
       _ensureKindSelectedAndSearch();
       _ensureStateSelectedAndSearch();
     });
+
+    // 시도 선택기 스크롤을 위해 추가 지연
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
   @override
@@ -269,6 +276,9 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     else {
       _onSidoSelected('6110000');
     }
+
+    // 시도 선택기가 준비된 후 스크롤을 위해 상태 업데이트
+    setState(() {});
   }
 
   void _ensureKindSelectedAndSearch() {
@@ -359,9 +369,23 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
               ],
             ),
           ),
+          // 반려동물 입양 섹션
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              '농림축산검역본부',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
           ListTile(
             leading: Icon(Icons.grid_view, color: AppColors.textPrimary),
-            title: const Text('그리드 보기'),
+            title: const Text('구조동물 조회'),
+            subtitle: const Text('그리드 보기'),
             selected: viewType == ViewType.grid,
             selectedTileColor: AppColors.tossBlue.withOpacity(0.1),
             onTap: () async {
@@ -372,13 +396,38 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
           ),
           ListTile(
             leading: Icon(Icons.view_list, color: AppColors.textPrimary),
-            title: const Text('리스트 보기'),
+            title: const Text('구조동물 조회'),
+            subtitle: const Text('리스트 보기'),
             selected: viewType == ViewType.list,
             selectedTileColor: AppColors.tossBlue.withOpacity(0.1),
             onTap: () async {
               ref.read(viewTypeProvider.notifier).state = ViewType.list;
               await _saveViewType(ViewType.list);
               Navigator.pop(context);
+            },
+          ),
+          // const Divider(height: 2),
+          // Padding(
+          //   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          //   child: Text(
+          //     '국가동물보호정보시스템',
+          //     style: TextStyle(
+          //       color: AppColors.textSecondary,
+          //       fontSize: 12,
+          //       fontWeight: FontWeight.w600,
+          //       letterSpacing: 0.5,
+          //     ),
+          //   ),
+          // ),
+          ListTile(
+            leading: Icon(Icons.security, color: AppColors.textPrimary),
+            title: const Text('국가봉사동물 입양 (웹)'),
+            subtitle: const Text('웹페이지로 보기'),
+            onTap: () {
+              Navigator.pop(context);
+              Future.delayed(const Duration(milliseconds: 250), () {
+                context.push('/pets/nsa-adopt');
+              });
             },
           ),
           const Divider(height: 2),

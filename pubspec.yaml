@@ -28,6 +28,9 @@ dependencies:
   json_annotation: ^4.9.0
   flutter_launcher_icons: ^0.14.4
   dropdown_search: ^5.0.0
+  webview_flutter: ^4.7.0
+  http: ^1.2.0
+  html: ^0.15.4
 dev_dependencies:
   flutter_test:
     sdk: flutter
