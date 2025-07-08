@@ -761,25 +761,6 @@ class SearchFilterScreen extends ConsumerWidget {
               },
             ),
           ),
-          if (currentKind != null && currentKind.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(left: 8),
-              child: IconButton(
-                onPressed: () {
-                  ref
-                      .read(searchFilterProvider.notifier)
-                      .setField('kind', null);
-                },
-                icon: const Icon(Icons.close, color: Colors.grey, size: 20),
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.grey.shade100,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.all(8),
-                ),
-              ),
-            ),
         ],
       ),
     );
