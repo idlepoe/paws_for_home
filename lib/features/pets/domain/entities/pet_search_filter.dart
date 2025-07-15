@@ -30,6 +30,44 @@ class PetSearchFilter {
     this.noticeNo,
   });
 
+  // JSON 직렬화를 위한 toJson 메서드
+  Map<String, dynamic> toJson() {
+    return {
+      'bgnde': bgnde,
+      'endde': endde,
+      'upkind': upkind,
+      'kind': kind,
+      'uprCd': uprCd,
+      'orgCd': orgCd,
+      'careRegNo': careRegNo,
+      'state': state,
+      'neuterYn': neuterYn,
+      'sexCd': sexCd,
+      'rfidCd': rfidCd,
+      'desertionNo': desertionNo,
+      'noticeNo': noticeNo,
+    };
+  }
+
+  // JSON 역직렬화를 위한 fromJson 팩토리 메서드
+  factory PetSearchFilter.fromJson(Map<String, dynamic> json) {
+    return PetSearchFilter(
+      bgnde: json['bgnde'] as String?,
+      endde: json['endde'] as String?,
+      upkind: json['upkind'] as String?,
+      kind: json['kind'] as String?,
+      uprCd: json['uprCd'] as String?,
+      orgCd: json['orgCd'] as String?,
+      careRegNo: json['careRegNo'] as String?,
+      state: json['state'] as String?,
+      neuterYn: json['neuterYn'] as String?,
+      sexCd: json['sexCd'] as String?,
+      rfidCd: json['rfidCd'] as String?,
+      desertionNo: json['desertionNo'] as String?,
+      noticeNo: json['noticeNo'] as String?,
+    );
+  }
+
   PetSearchFilter copyWith({
     String? bgnde,
     String? endde,

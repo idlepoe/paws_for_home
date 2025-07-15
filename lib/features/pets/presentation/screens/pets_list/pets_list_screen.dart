@@ -14,6 +14,7 @@ import 'widgets/kind_selector.dart';
 import 'widgets/state_selector.dart';
 import 'widgets/search_conditions.dart';
 import 'widgets/pet_list_item.dart';
+import 'widgets/cache_status_indicator.dart';
 
 // 뷰 타입을 관리하는 프로바이더
 final viewTypeProvider = StateProvider<ViewType>((ref) => ViewType.grid);
@@ -33,6 +34,7 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
   String? _selectedSidoCode;
   String? _selectedKindCode;
   String? _selectedStateCode;
+  DateTime? _lastRefreshTime; // 마지막 새로고침 시간
 
   // 개별 아이템 refresh를 위한 상태 관리
   final Map<String, bool> _refreshStates = {};
@@ -70,14 +72,40 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 화면이 포커스를 받을 때마다 관심 상태 새로고침
+    // 화면이 포커스를 받을 때마다 관심 상태 새로고침 및 자동 새로고침
     _refreshFavoriteStates();
+    _autoRefreshOnFocus();
   }
 
   // 관심 상태 새로고침을 위한 메서드
   void _refreshFavoriteStates() {
     // PetCard와 PetListItem의 관심 상태를 새로고침하기 위해 setState 호출
     setState(() {});
+  }
+
+  // 화면 포커스 시 자동 새로고침
+  void _autoRefreshOnFocus() {
+    // 마지막 새로고침 시간을 확인하여 중복 새로고침 방지
+    final now = DateTime.now();
+    final lastRefreshTime = _lastRefreshTime;
+
+    if (lastRefreshTime == null ||
+        now.difference(lastRefreshTime).inSeconds > 30) {
+      // 30초 이상 지났으면 새로고침
+      _lastRefreshTime = now;
+      _refreshPetsInBackground();
+    }
+  }
+
+  // 백그라운드에서 새로고침 (UI 블로킹 방지)
+  Future<void> _refreshPetsInBackground() async {
+    try {
+      await ref.read(petsProvider.notifier).refreshPetsInBackground();
+    } catch (e) {
+      // 백그라운드 새로고침 실패는 무시 (사용자에게 알리지 않음)
+      // logger 충돌을 피하기 위해 print 사용
+      print('백그라운드 새로고침 실패: $e');
+    }
   }
 
   void _onScroll() {
@@ -591,6 +619,8 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
           ),
           // 검색 조건 표시
           SearchConditions(onRemoveCondition: _removeCondition),
+          // 캐시 상태 표시
+          const CacheStatusIndicator(),
           // 펫 목록
           Expanded(
             child: RefreshIndicator(
