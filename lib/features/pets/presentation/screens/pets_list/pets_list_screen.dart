@@ -90,8 +90,9 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     final lastRefreshTime = _lastRefreshTime;
 
     if (lastRefreshTime == null ||
-        now.difference(lastRefreshTime).inSeconds > 30) {
-      // 30초 이상 지났으면 새로고침
+        now.difference(lastRefreshTime).inSeconds > 60) {
+      // 30초에서 60초로 증가
+      // 60초 이상 지났으면 새로고침
       _lastRefreshTime = now;
       _refreshPetsInBackground();
     }
@@ -100,7 +101,13 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
   // 백그라운드에서 새로고침 (UI 블로킹 방지)
   Future<void> _refreshPetsInBackground() async {
     try {
-      await ref.read(petsProvider.notifier).refreshPetsInBackground();
+      // 이미 백그라운드 새로고침 중인지 확인
+      final isRefreshing = ref
+          .read(petsProvider.notifier)
+          .isRefreshingInBackground;
+      if (!isRefreshing) {
+        await ref.read(petsProvider.notifier).refreshPetsInBackground();
+      }
     } catch (e) {
       // 백그라운드 새로고침 실패는 무시 (사용자에게 알리지 않음)
       // logger 충돌을 피하기 위해 print 사용

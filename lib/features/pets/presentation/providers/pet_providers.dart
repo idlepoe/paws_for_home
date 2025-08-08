@@ -153,6 +153,12 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
 
   // 백그라운드에서 최신 데이터 로드
   Future<void> _loadFreshDataInBackground(PetSearchFilter filter) async {
+    // 이미 백그라운드 새로고침 중이면 중복 실행 방지
+    if (_isRefreshingInBackground) {
+      logger.d('🔄 이미 백그라운드 새로고침 중, 중복 실행 방지');
+      return;
+    }
+
     try {
       logger.d('🔄 백그라운드에서 최신 데이터 로드 중...');
       _isRefreshingInBackground = true;
@@ -211,6 +217,12 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
 
   // 백그라운드에서 새로고침 (UI 블로킹 없이)
   Future<void> refreshPetsInBackground() async {
+    // 이미 백그라운드 새로고침 중이면 중복 실행 방지
+    if (_isRefreshingInBackground) {
+      logger.d('🔄 이미 백그라운드 새로고침 중, 중복 실행 방지');
+      return;
+    }
+
     try {
       logger.d('🔄 백그라운드 새로고침 시작');
       _isRefreshingInBackground = true;

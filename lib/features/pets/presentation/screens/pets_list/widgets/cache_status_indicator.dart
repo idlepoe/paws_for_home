@@ -15,12 +15,16 @@ class CacheStatusIndicator extends ConsumerStatefulWidget {
 class _CacheStatusIndicatorState extends ConsumerState<CacheStatusIndicator> {
   bool _showRefreshMessage = false;
   Timer? _hideTimer;
+  bool _hasShownInitialMessage = false;
 
   @override
   void initState() {
     super.initState();
-    // 화면 진입 시 갱신 메시지 표시
-    _showRefreshMessageForDuration();
+    // 화면 진입 시 한 번만 갱신 메시지 표시
+    if (!_hasShownInitialMessage) {
+      _showRefreshMessageForDuration();
+      _hasShownInitialMessage = true;
+    }
   }
 
   @override
@@ -34,9 +38,9 @@ class _CacheStatusIndicatorState extends ConsumerState<CacheStatusIndicator> {
       _showRefreshMessage = true;
     });
 
-    // 3초 후 메시지 숨기기
+    // 2초 후 메시지 숨기기 (3초에서 2초로 단축)
     _hideTimer?.cancel();
-    _hideTimer = Timer(const Duration(seconds: 3), () {
+    _hideTimer = Timer(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() {
           _showRefreshMessage = false;
@@ -53,6 +57,7 @@ class _CacheStatusIndicatorState extends ConsumerState<CacheStatusIndicator> {
         .isRefreshingInBackground;
 
     // 백그라운드 새로고침 중이거나 초기 메시지 표시 중일 때만 표시
+    // 단, 백그라운드 새로고침이 너무 자주 발생하지 않도록 제한
     if (!_showRefreshMessage && !isRefreshingInBackground) {
       return const SizedBox.shrink();
     }
