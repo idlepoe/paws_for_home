@@ -126,7 +126,7 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
 
       // 2. 캐시가 없거나 필터가 다르면 API에서 직접 로드
       final pets = await _useCase.execute(
-        numOfRows: '10',
+        numOfRows: '100',
         pageNo: _page.toString(),
         filter: filterToUse.isEmpty ? null : filterToUse,
       );
@@ -141,7 +141,7 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
         await _cacheService.cachePets(_allPets, filterToUse);
       }
 
-      _hasMore = pets.isNotEmpty && pets.length == 10;
+      _hasMore = pets.isNotEmpty && pets.length == 100;
       state = AsyncValue.data(_allPets);
       _page++;
     } catch (error, stackTrace) {
@@ -164,7 +164,7 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
       _isRefreshingInBackground = true;
 
       final freshPets = await _useCase.execute(
-        numOfRows: '10',
+        numOfRows: '100',
         pageNo: '1',
         filter: filter.isEmpty ? null : filter,
       );
@@ -235,7 +235,7 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
 
       // 최신 데이터 로드
       final freshPets = await _useCase.execute(
-        numOfRows: '10',
+        numOfRows: '100',
         pageNo: '1',
         filter: filterToUse.isEmpty ? null : filterToUse,
       );
