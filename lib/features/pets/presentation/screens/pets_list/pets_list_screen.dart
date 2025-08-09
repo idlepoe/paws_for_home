@@ -47,11 +47,9 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     _loadSavedStateCode();
     _loadSavedViewType();
 
-    // 검색 조건 변경 시 시도 선택도 업데이트
+    // UI 상태만 동기화 (검색은 PetsNotifier에서 이미 처리됨)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _ensureSidoSelectedAndSearch();
-      _ensureKindSelectedAndSearch();
-      _ensureStateSelectedAndSearch();
+      _syncUIWithSavedSettings();
     });
 
     // 시도 선택기 스크롤을 위해 추가 지연
@@ -78,6 +76,56 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
   // 관심 상태 새로고침을 위한 메서드
   void _refreshFavoriteStates() {
     // PetCard와 PetListItem의 관심 상태를 새로고침하기 위해 setState 호출
+    setState(() {});
+  }
+
+  // UI 상태를 저장된 설정과 동기화 (검색은 하지 않음)
+  void _syncUIWithSavedSettings() {
+    final dropdownData = ref.read(dropdownDataProvider);
+    final sidoList = dropdownData['sido'] ?? [];
+    final kindList = dropdownData['upkind'] ?? [];
+
+    // 저장된 시도 코드가 있고 시도 리스트에 존재하는지 확인
+    if (_selectedSidoCode != null && sidoList.isNotEmpty) {
+      final sidoExists = sidoList.any(
+        (sido) => sido['code']?.toString() == _selectedSidoCode,
+      );
+      if (!sidoExists) {
+        // 저장된 시도가 리스트에 없으면 첫 번째 시도로 설정
+        final firstSidoCode = sidoList.first['code']?.toString();
+        if (firstSidoCode != null) {
+          _onSidoSelected(firstSidoCode);
+        }
+      }
+    } else if (_selectedSidoCode == null && sidoList.isNotEmpty) {
+      // 저장된 시도가 없으면 첫 번째 시도로 설정
+      final firstSidoCode = sidoList.first['code']?.toString();
+      if (firstSidoCode != null) {
+        _onSidoSelected(firstSidoCode);
+      }
+    }
+
+    // 저장된 축종 코드가 있고 축종 리스트에 존재하는지 확인
+    if (_selectedKindCode != null && kindList.isNotEmpty) {
+      final kindExists = kindList.any(
+        (kind) => kind['code']?.toString() == _selectedKindCode,
+      );
+      if (!kindExists) {
+        // 저장된 축종이 리스트에 없으면 첫 번째 축종으로 설정
+        final firstKindCode = kindList.first['code']?.toString();
+        if (firstKindCode != null) {
+          _onKindSelected(firstKindCode);
+        }
+      }
+    } else if (_selectedKindCode == null && kindList.isNotEmpty) {
+      // 저장된 축종이 없으면 첫 번째 축종으로 설정
+      final firstKindCode = kindList.first['code']?.toString();
+      if (firstKindCode != null) {
+        _onKindSelected(firstKindCode);
+      }
+    }
+
+    // UI 업데이트
     setState(() {});
   }
 
@@ -251,76 +299,6 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     final prefs = await SharedPreferences.getInstance();
     final viewTypeString = viewType == ViewType.list ? 'list' : 'grid';
     await prefs.setString('view_type', viewTypeString);
-  }
-
-  void _ensureSidoSelectedAndSearch() {
-    final dropdownData = ref.read(dropdownDataProvider);
-    final sidoList = dropdownData['sido'] ?? [];
-
-    // 저장된 시도 코드가 있으면 사용
-    if (_selectedSidoCode != null) {
-      final currentFilter = ref.read(searchFilterProvider);
-      if (currentFilter.uprCd != _selectedSidoCode) {
-        final newFilter = currentFilter.copyWith(uprCd: _selectedSidoCode);
-        ref.read(searchFilterProvider.notifier).updateFilter(newFilter);
-        ref.read(petsProvider.notifier).searchPets(newFilter);
-      }
-    }
-    // 저장된 시도 코드가 없고 시도 리스트가 있으면 첫 번째 시도로 설정
-    else if (sidoList.isNotEmpty) {
-      final firstSidoCode = sidoList.first['code']?.toString();
-      if (firstSidoCode != null) {
-        _onSidoSelected(firstSidoCode);
-      }
-    }
-    // 시도 리스트가 비어있으면 기본 시도(서울특별시)로 설정
-    else {
-      _onSidoSelected('6110000');
-    }
-
-    // 시도 선택기가 준비된 후 스크롤을 위해 상태 업데이트
-    setState(() {});
-  }
-
-  void _ensureKindSelectedAndSearch() {
-    final dropdownData = ref.read(dropdownDataProvider);
-    final kindList = dropdownData['upkind'] ?? [];
-
-    // 저장된 축종 코드가 있으면 사용
-    if (_selectedKindCode != null) {
-      final currentFilter = ref.read(searchFilterProvider);
-      if (currentFilter.upkind != _selectedKindCode) {
-        final newFilter = currentFilter.copyWith(upkind: _selectedKindCode);
-        ref.read(searchFilterProvider.notifier).updateFilter(newFilter);
-        ref.read(petsProvider.notifier).searchPets(newFilter);
-      }
-    }
-    // 저장된 축종 코드가 없고 축종 리스트가 있으면 첫 번째 축종으로 설정
-    else if (kindList.isNotEmpty) {
-      final firstKindCode = kindList.first['code']?.toString();
-      if (firstKindCode != null) {
-        _onKindSelected(firstKindCode);
-      }
-    }
-    // 축종 리스트가 비어있으면 기본 축종(개)으로 설정
-    else {
-      _onKindSelected('417000');
-    }
-  }
-
-  void _ensureStateSelectedAndSearch() {
-    // 저장된 상태 코드가 있으면 사용
-    if (_selectedStateCode != null) {
-      final currentFilter = ref.read(searchFilterProvider);
-      if (currentFilter.state != _selectedStateCode) {
-        final newFilter = currentFilter.copyWith(state: _selectedStateCode);
-        ref.read(searchFilterProvider.notifier).updateFilter(newFilter);
-        ref.read(petsProvider.notifier).searchPets(newFilter);
-      }
-    } else {
-      // 저장된 상태 코드가 없으면 기본 상태(공고중)로 설정
-      _onStateSelected('notice');
-    }
   }
 
   void _removeCondition(int index, String condition) {

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:paws_for_home/core/services/abandonment_api_service.dart';
 import 'package:paws_for_home/core/services/pet_cache_service.dart';
 import 'package:paws_for_home/features/pets/data/datasources/pet_remote_data_source.dart';
@@ -77,7 +78,66 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
 
   PetsNotifier(this._useCase, this._cacheService, this._filter)
     : super(const AsyncValue.loading()) {
-    _loadPetsWithCache(reset: true);
+    _initializeWithSavedFilter();
+  }
+
+  // 저장된 필터 정보를 먼저 로드한 후 캐시 로딩 시작
+  Future<void> _initializeWithSavedFilter() async {
+    try {
+      logger.d('🔄 저장된 필터 정보 로드 시작');
+
+      // SharedPreferences에서 저장된 필터 정보 로드
+      final prefs = await SharedPreferences.getInstance();
+      final savedSidoCode = prefs.getString('selected_sido_code');
+      final savedKindCode = prefs.getString('selected_kind_code');
+      final savedStateCode = prefs.getString('selected_state_code');
+
+      // 저장된 정보로 필터 업데이트
+      PetSearchFilter updatedFilter = _filter;
+
+      if (savedSidoCode != null) {
+        updatedFilter = updatedFilter.copyWith(uprCd: savedSidoCode);
+        logger.d('💾 저장된 시도 코드 적용: $savedSidoCode');
+      } else {
+        // 저장된 시도가 없으면 기본값(서울) 설정
+        updatedFilter = updatedFilter.copyWith(uprCd: '6110000');
+        logger.d('🏙️ 기본 시도(서울) 설정');
+      }
+
+      if (savedKindCode != null) {
+        updatedFilter = updatedFilter.copyWith(upkind: savedKindCode);
+        logger.d('💾 저장된 축종 코드 적용: $savedKindCode');
+      } else {
+        // 저장된 축종이 없으면 기본값(개) 설정
+        updatedFilter = updatedFilter.copyWith(upkind: '417000');
+        logger.d('🐕 기본 축종(개) 설정');
+      }
+
+      if (savedStateCode != null) {
+        updatedFilter = updatedFilter.copyWith(state: savedStateCode);
+        logger.d('💾 저장된 상태 코드 적용: $savedStateCode');
+      } else {
+        // 저장된 상태가 없으면 기본값(공고중) 설정
+        updatedFilter = updatedFilter.copyWith(state: 'notice');
+        logger.d('📢 기본 상태(공고중) 설정');
+      }
+
+      // 필터 업데이트
+      _filter = updatedFilter;
+      logger.i('✅ 필터 초기화 완료: ${_filter.toJson()}');
+
+      // 이제 캐시 로딩 시작
+      await _loadPetsWithCache(reset: true);
+    } catch (e) {
+      logger.e('❌ 필터 초기화 실패: $e');
+      // 실패 시 기본 필터로 진행
+      _filter = _filter.copyWith(
+        uprCd: '6110000', // 서울
+        upkind: '417000', // 개
+        state: 'notice', // 공고중
+      );
+      await _loadPetsWithCache(reset: true);
+    }
   }
 
   Future<void> _loadPetsWithCache({bool reset = false}) async {
@@ -93,12 +153,9 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
         state = const AsyncValue.loading();
       }
 
-      // 시도 정보가 없으면 기본 시도(서울특별시)로 설정
+      // 이미 초기화된 필터 사용 (기본값 강제 설정 제거)
       PetSearchFilter filterToUse = _filter;
-      if (_filter.isEmpty || _filter.uprCd == null) {
-        filterToUse = _filter.copyWith(uprCd: '6110000'); // 서울특별시 코드
-        logger.d('시도 정보가 없어서 기본 시도(서울특별시)로 설정');
-      }
+      logger.d('현재 필터 사용: ${filterToUse.toJson()}');
 
       // 1. 먼저 캐시에서 데이터 로드 시도
       if (reset && !_isLoadingFromCache) {
@@ -145,6 +202,7 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
       state = AsyncValue.data(_allPets);
       _page++;
     } catch (error, stackTrace) {
+      _isLoading = false;
       state = AsyncValue.error(error, stackTrace);
     } finally {
       _isLoading = false;
