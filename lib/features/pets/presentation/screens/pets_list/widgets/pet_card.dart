@@ -95,115 +95,117 @@ class _PetCardState extends State<PetCard> {
                   ),
 
                 // 정보 섹션
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 발견 정보
-                      if (widget.pet.happenPlace != null &&
-                          widget.pet.happenPlace!.isNotEmpty)
-                        Text(
-                          widget.pet.happenPlace!,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-
-                      if (widget.pet.happenDt != null)
-                        Text(
-                          '발견일: ${_formatDate(widget.pet.happenDt!)}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-
-                      if (widget.pet.careNm != null &&
-                          widget.pet.careNm!.isNotEmpty)
-                        Text(
-                          widget.pet.careNm!,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.tossBlue,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-
-                      const SizedBox(height: 8),
-
-                      // 하단 칩들
-                      Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
-                        children: [
-                          if (widget.pet.sexCd != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: widget.pet.sexCd == 'M'
-                                    ? Colors.orange.withOpacity(0.1)
-                                    : Colors.pink.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: widget.pet.sexCd == 'M'
-                                      ? Colors.orange.withOpacity(0.3)
-                                      : Colors.pink.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                widget.pet.sexCd == 'M' ? '수컷' : '암컷',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: widget.pet.sexCd == 'M'
-                                      ? Colors.orange[700]
-                                      : Colors.pink[700],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 발견 정보
+                        if (widget.pet.happenPlace != null &&
+                            widget.pet.happenPlace!.isNotEmpty)
+                          Text(
+                            widget.pet.happenPlace!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
                             ),
-                          if (widget.pet.neuterYn != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: widget.pet.neuterYn == 'Y'
-                                    ? Colors.deepOrange.withOpacity(0.1)
-                                    : Colors.orange.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: widget.pet.neuterYn == 'Y'
-                                      ? Colors.deepOrange.withOpacity(0.3)
-                                      : Colors.orange.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                widget.pet.neuterYn == 'Y' ? '중성화' : '미중성화',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: widget.pet.neuterYn == 'Y'
-                                      ? Colors.deepOrange[700]
-                                      : Colors.orange[700],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+
+                        if (widget.pet.happenDt != null)
+                          Text(
+                            '발견일: ${_formatDate(widget.pet.happenDt!)}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
                             ),
-                        ],
-                      ),
-                    ],
+                          ),
+
+                        if (widget.pet.careNm != null &&
+                            widget.pet.careNm!.isNotEmpty)
+                          Text(
+                            widget.pet.careNm!,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.tossBlue,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+
+                        const SizedBox(height: 8),
+
+                        // 하단 칩들
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: [
+                            if (widget.pet.sexCd != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: widget.pet.sexCd == 'M'
+                                      ? Colors.orange.withOpacity(0.1)
+                                      : Colors.pink.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: widget.pet.sexCd == 'M'
+                                        ? Colors.orange.withOpacity(0.3)
+                                        : Colors.pink.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  widget.pet.sexCd == 'M' ? '수컷' : '암컷',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: widget.pet.sexCd == 'M'
+                                        ? Colors.orange[700]
+                                        : Colors.pink[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            if (widget.pet.neuterYn != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: widget.pet.neuterYn == 'Y'
+                                      ? Colors.deepOrange.withOpacity(0.1)
+                                      : Colors.orange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: widget.pet.neuterYn == 'Y'
+                                        ? Colors.deepOrange.withOpacity(0.3)
+                                        : Colors.orange.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  widget.pet.neuterYn == 'Y' ? '중성화' : '미중성화',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: widget.pet.neuterYn == 'Y'
+                                        ? Colors.deepOrange[700]
+                                        : Colors.orange[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

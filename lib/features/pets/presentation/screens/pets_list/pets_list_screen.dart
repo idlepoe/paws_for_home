@@ -29,8 +29,6 @@ class PetsListScreen extends ConsumerStatefulWidget {
 }
 
 class _PetsListScreenState extends ConsumerState<PetsListScreen> {
-  final ScrollController _scrollController = ScrollController();
-  bool _isLoadingMore = false;
   String? _selectedSidoCode;
   String? _selectedKindCode;
   String? _selectedStateCode;
@@ -41,7 +39,6 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
     _loadSavedSidoCode();
     _loadSavedKindCode();
     _loadSavedStateCode();
@@ -62,7 +59,6 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
 
   @override
   void dispose() {
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -127,29 +123,6 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
 
     // UI 업데이트
     setState(() {});
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      _loadMorePets();
-    }
-  }
-
-  Future<void> _loadMorePets() async {
-    if (_isLoadingMore) return;
-
-    setState(() {
-      _isLoadingMore = true;
-    });
-
-    try {
-      await ref.read(petsProvider.notifier).loadMorePets();
-    } finally {
-      setState(() {
-        _isLoadingMore = false;
-      });
-    }
   }
 
   Future<void> _refreshPets() async {
@@ -436,77 +409,64 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     );
   }
 
-  Widget _buildPetList(List<AbandonmentItem> pets) {
+  Widget _buildPetSliverList(List<AbandonmentItem> pets) {
     final viewType = ref.watch(viewTypeProvider);
 
     if (viewType == ViewType.grid) {
-      return MasonryGridView.count(
-        controller: _scrollController,
-        crossAxisCount: 3,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
+      return SliverPadding(
         padding: const EdgeInsets.all(12),
-        itemCount: pets.length + (_isLoadingMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index == pets.length) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: CircularProgressIndicator(
-                  color: AppColors.primary,
-                  strokeCap: StrokeCap.round,
-                ),
+        sliver: SliverGrid(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2, // 2열로 고정
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 0.75, // 카드의 가로:세로 비율 고정 (가로가 세로보다 넓음)
+          ),
+          delegate: SliverChildBuilderDelegate((
+            BuildContext context,
+            int index,
+          ) {
+            final pet = pets[index];
+            return PetCard(
+              key: ValueKey(
+                'pet_card_${pet.desertionNo}_${_refreshStates[pet.desertionNo] ?? false}',
               ),
+              pet: pet,
             );
-          }
-
-          final pet = pets[index];
-          return PetCard(
-            key: ValueKey(
-              'pet_card_${pet.desertionNo}_${_refreshStates[pet.desertionNo] ?? false}',
-            ),
-            pet: pet,
-          );
-        },
+          }, childCount: pets.length),
+        ),
       );
     } else {
-      return ListView.separated(
-        controller: _scrollController,
+      return SliverPadding(
         padding: const EdgeInsets.all(16),
-        itemCount: pets.length + (_isLoadingMore ? 1 : 0),
-        separatorBuilder: (_, __) => SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          if (index == pets.length) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: CircularProgressIndicator(
-                  color: AppColors.primary,
-                  strokeCap: StrokeCap.round,
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate((
+            BuildContext context,
+            int index,
+          ) {
+            final pet = pets[index];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: PetListItem(
+                key: ValueKey(
+                  'pet_list_item_${pet.desertionNo}_${_refreshStates[pet.desertionNo] ?? false}',
                 ),
+                pet: pet,
+                onTap: () async {
+                  // 상세 화면으로 진입하고 결과를 기다림
+                  await context.push('/pets/detail', extra: pet);
+                  // 상세 화면에서 돌아온 후 해당 아이템만 refresh
+                  if (mounted) {
+                    setState(() {
+                      _refreshStates[pet.desertionNo ?? ''] =
+                          !(_refreshStates[pet.desertionNo ?? ''] ?? false);
+                    });
+                  }
+                },
               ),
             );
-          }
-
-          final pet = pets[index];
-          return PetListItem(
-            key: ValueKey(
-              'pet_list_item_${pet.desertionNo}_${_refreshStates[pet.desertionNo] ?? false}',
-            ),
-            pet: pet,
-            onTap: () async {
-              // 상세 화면으로 진입하고 결과를 기다림
-              await context.push('/pets/detail', extra: pet);
-              // 상세 화면에서 돌아온 후 해당 아이템만 refresh
-              if (mounted) {
-                setState(() {
-                  _refreshStates[pet.desertionNo ?? ''] =
-                      !(_refreshStates[pet.desertionNo ?? ''] ?? false);
-                });
-              }
-            },
-          );
-        },
+          }, childCount: pets.length),
+        ),
       );
     }
   }
@@ -549,77 +509,90 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // 시도 선택기
-          SidoSelector(
-            sidoList: dropdownData['sido'] ?? [],
-            selectedSidoCode: _selectedSidoCode,
-            onSidoSelected: _onSidoSelected,
+      body: CustomScrollView(
+        slivers: [
+          // 필터 부분을 SliverAppBar로 구현
+          SliverAppBar(
+            expandedHeight: 200, // 필터 부분의 높이
+            collapsedHeight: 56, // toolbarHeight보다 크거나 같게 설정
+            floating: true, // 스크롤 올릴 때 즉시 표시
+            pinned: false, // 스크롤 내릴 때 완전히 숨김
+            backgroundColor: AppColors.background,
+            elevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              background: Column(
+                children: [
+                  // 시도 선택기
+                  SidoSelector(
+                    sidoList: dropdownData['sido'] ?? [],
+                    selectedSidoCode: _selectedSidoCode,
+                    onSidoSelected: _onSidoSelected,
+                  ),
+                  // 축종 선택기
+                  KindSelector(
+                    kindList: dropdownData['upkind'] ?? [],
+                    selectedKindCode: _selectedKindCode,
+                    onKindSelected: _onKindSelected,
+                  ),
+                  // 상태 선택기
+                  StateSelector(
+                    selectedStateCode: _selectedStateCode,
+                    onStateSelected: _onStateSelected,
+                  ),
+                  // 검색 조건 표시
+                  SearchConditions(onRemoveCondition: _removeCondition),
+                ],
+              ),
+            ),
           ),
-          // 축종 선택기
-          KindSelector(
-            kindList: dropdownData['upkind'] ?? [],
-            selectedKindCode: _selectedKindCode,
-            onKindSelected: _onKindSelected,
-          ),
-          // 상태 선택기
-          StateSelector(
-            selectedStateCode: _selectedStateCode,
-            onStateSelected: _onStateSelected,
-          ),
-          // 검색 조건 표시
-          SearchConditions(onRemoveCondition: _removeCondition),
-          // 캐시 상태 표시
-          const CacheStatusIndicator(),
+          // 캐시 상태 표시 (항상 표시)
+          const SliverToBoxAdapter(child: CacheStatusIndicator()),
           // 펫 목록
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _refreshPets,
-              color: AppColors.primary,
-              child: petsAsync.when(
-                data: (pets) {
-                  if (pets.isEmpty) {
-                    return ListView(
-                      children: [
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.2,
-                        ),
-                        Center(
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.search_off,
-                                size: 64,
-                                color: AppColors.textSecondary,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                '검색 결과가 없습니다',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                '검색 조건을 변경해보세요',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
+          petsAsync.when(
+            data: (pets) {
+              if (pets.isEmpty) {
+                return SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.4,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search_off,
+                            size: 64,
+                            color: AppColors.textSecondary,
                           ),
-                        ),
-                      ],
-                    );
-                  }
+                          const SizedBox(height: 16),
+                          Text(
+                            '검색 결과가 없습니다',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '검색 조건을 변경해보세요',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
 
-                  return _buildPetList(pets);
-                },
-                loading: () => Center(
+              return _buildPetSliverList(pets);
+            },
+            loading: () => SliverToBoxAdapter(
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.4,
+                child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -638,7 +611,12 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
                     ],
                   ),
                 ),
-                error: (error, stack) => Center(
+              ),
+            ),
+            error: (error, stack) => SliverToBoxAdapter(
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.4,
+                child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

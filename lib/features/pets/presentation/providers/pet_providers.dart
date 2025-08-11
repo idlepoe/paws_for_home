@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:paws_for_home/core/services/abandonment_api_service.dart';
 import 'package:paws_for_home/core/services/pet_cache_service.dart';
+import 'package:paws_for_home/core/constants/define.dart';
 import 'package:paws_for_home/features/pets/data/datasources/pet_remote_data_source.dart';
 import 'package:paws_for_home/features/pets/data/repositories/pet_repository_impl.dart';
 import 'package:paws_for_home/features/pets/domain/entities/pet_search_filter.dart';
@@ -69,8 +70,6 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
   final GetPetsUseCase _useCase;
   final PetCacheService _cacheService;
   PetSearchFilter _filter;
-  int _page = 1;
-  bool _hasMore = true;
   bool _isLoading = false;
   List<AbandonmentItem> _allPets = [];
   bool _isLoadingFromCache = false;
@@ -147,8 +146,6 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
 
     try {
       if (reset) {
-        _page = 1;
-        _hasMore = true;
         _allPets = [];
         state = const AsyncValue.loading();
       }
@@ -170,6 +167,7 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
           if (_isFilterEqual(cachedFilter, filterToUse)) {
             logger.i('✅ 캐시된 데이터 사용: ${cachedPets.length}개');
             _allPets = List.from(cachedPets);
+
             state = AsyncValue.data(_allPets);
             _isLoadingFromCache = false;
 
@@ -183,24 +181,17 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
 
       // 2. 캐시가 없거나 필터가 다르면 API에서 직접 로드
       final pets = await _useCase.execute(
-        numOfRows: '100',
-        pageNo: _page.toString(),
+        numOfRows: ApiConstants.numOfRows,
+        pageNo: ApiConstants.defaultPageNo,
         filter: filterToUse.isEmpty ? null : filterToUse,
       );
 
-      if (reset) {
-        _allPets = pets;
-        // 새로운 데이터를 캐시에 저장
-        await _cacheService.cachePets(pets, filterToUse);
-      } else {
-        _allPets.addAll(pets);
-        // 전체 목록을 캐시에 업데이트
-        await _cacheService.cachePets(_allPets, filterToUse);
-      }
-
-      _hasMore = pets.isNotEmpty && pets.length == 100;
+      _allPets = pets;
+      // 새로운 데이터를 캐시에 저장
+      await _cacheService.cachePets(pets, filterToUse);
       state = AsyncValue.data(_allPets);
-      _page++;
+
+      logger.i('✅ 데이터 로드 완료: ${pets.length}개, 총 ${_allPets.length}개');
     } catch (error, stackTrace) {
       _isLoading = false;
       state = AsyncValue.error(error, stackTrace);
@@ -224,8 +215,8 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
       state = AsyncValue.data(_allPets);
 
       final freshPets = await _useCase.execute(
-        numOfRows: '100',
-        pageNo: '1',
+        numOfRows: ApiConstants.numOfRows,
+        pageNo: ApiConstants.defaultPageNo,
         filter: filter.isEmpty ? null : filter,
       );
 
@@ -300,8 +291,8 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
 
       // 최신 데이터 로드
       final freshPets = await _useCase.execute(
-        numOfRows: '100',
-        pageNo: '1',
+        numOfRows: ApiConstants.numOfRows,
+        pageNo: ApiConstants.defaultPageNo,
         filter: filterToUse.isEmpty ? null : filterToUse,
       );
 
@@ -326,19 +317,12 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
     }
   }
 
-  Future<void> loadMorePets() async {
-    if (_hasMore && !_isLoading) {
-      await _loadPetsWithCache();
-    }
-  }
-
   Future<void> searchPets(PetSearchFilter filter) async {
     logger.d('searchPets');
     _filter = filter;
     await _loadPetsWithCache(reset: true);
   }
 
-  bool get hasMore => _hasMore;
   bool get isLoading => _isLoading;
   bool get isRefreshingInBackground => _isRefreshingInBackground;
 }
