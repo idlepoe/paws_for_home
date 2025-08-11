@@ -220,6 +220,8 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
     try {
       logger.d('🔄 백그라운드에서 최신 데이터 로드 중...');
       _isRefreshingInBackground = true;
+      // 상태 변경을 UI에 알리기 위해 state 업데이트 (강제 리빌드)
+      state = AsyncValue.data(_allPets);
 
       final freshPets = await _useCase.execute(
         numOfRows: '100',
@@ -242,6 +244,9 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
       logger.e('❌ 백그라운드 데이터 로드 실패: $e');
     } finally {
       _isRefreshingInBackground = false;
+      // 상태 변경을 UI에 알리기 위해 state 업데이트 (강제 리빌드)
+      state = AsyncValue.data(_allPets);
+      logger.d('🔄 백그라운드 데이터 로드 완료, 상태: $_isRefreshingInBackground');
     }
   }
 
@@ -284,6 +289,8 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
     try {
       logger.d('🔄 백그라운드 새로고침 시작');
       _isRefreshingInBackground = true;
+      // 상태 변경을 UI에 알리기 위해 state 업데이트 (강제 리빌드)
+      state = AsyncValue.data(_allPets);
 
       // 시도 정보가 없으면 기본 시도(서울특별시)로 설정
       PetSearchFilter filterToUse = _filter;
@@ -313,6 +320,9 @@ class PetsNotifier extends StateNotifier<AsyncValue<List<AbandonmentItem>>> {
       logger.e('❌ 백그라운드 새로고침 실패: $e');
     } finally {
       _isRefreshingInBackground = false;
+      // 상태 변경을 UI에 알리기 위해 state 업데이트 (강제 리빌드)
+      state = AsyncValue.data(_allPets);
+      logger.d('🔄 백그라운드 새로고침 완료, 상태: $_isRefreshingInBackground');
     }
   }
 

@@ -38,9 +38,18 @@ class _CacheStatusIndicatorState extends ConsumerState<CacheStatusIndicator> {
       _showRefreshMessage = true;
     });
 
-    // 2초 후 메시지 숨기기 (3초에서 2초로 단축)
+    // 백그라운드 새로고침 상태를 확인하여 메시지 표시 시간 조정
+    final isRefreshingInBackground = ref
+        .read(petsProvider.notifier)
+        .isRefreshingInBackground;
+    
+    // 백그라운드 새로고침 중이면 더 짧게 표시 (1초)
+    final duration = isRefreshingInBackground 
+        ? const Duration(seconds: 1) 
+        : const Duration(seconds: 2);
+
     _hideTimer?.cancel();
-    _hideTimer = Timer(const Duration(seconds: 2), () {
+    _hideTimer = Timer(duration, () {
       if (mounted) {
         setState(() {
           _showRefreshMessage = false;
@@ -56,8 +65,12 @@ class _CacheStatusIndicatorState extends ConsumerState<CacheStatusIndicator> {
         .watch(petsProvider.notifier)
         .isRefreshingInBackground;
 
+    // 백그라운드 새로고침이 시작되면 메시지 표시
+    if (isRefreshingInBackground && !_showRefreshMessage) {
+      _showRefreshMessageForDuration();
+    }
+
     // 백그라운드 새로고침 중이거나 초기 메시지 표시 중일 때만 표시
-    // 단, 백그라운드 새로고침이 너무 자주 발생하지 않도록 제한
     if (!_showRefreshMessage && !isRefreshingInBackground) {
       return const SizedBox.shrink();
     }
