@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+
+import 'package:dynamic_height_grid_view/dynamic_height_grid_view.dart';
 import 'package:paws_for_home/core/constants/app_colors.dart';
 import 'package:paws_for_home/features/pets/domain/entities/pet_search_filter.dart';
 import 'package:paws_for_home/shared/models/abandonment_response.dart';
@@ -413,29 +414,7 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
     final viewType = ref.watch(viewTypeProvider);
 
     if (viewType == ViewType.grid) {
-      return SliverPadding(
-        padding: const EdgeInsets.all(12),
-        sliver: SliverGrid(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // 2열로 고정
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 0.75, // 카드의 가로:세로 비율 고정 (가로가 세로보다 넓음)
-          ),
-          delegate: SliverChildBuilderDelegate((
-            BuildContext context,
-            int index,
-          ) {
-            final pet = pets[index];
-            return PetCard(
-              key: ValueKey(
-                'pet_card_${pet.desertionNo}_${_refreshStates[pet.desertionNo] ?? false}',
-              ),
-              pet: pet,
-            );
-          }, childCount: pets.length),
-        ),
-      );
+      return _buildResponsiveSliverGrid(pets);
     } else {
       return SliverPadding(
         padding: const EdgeInsets.all(16),
@@ -468,6 +447,46 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
           }, childCount: pets.length),
         ),
       );
+    }
+  }
+
+  // SliverDynamicHeightGridView를 사용하는 반응형 그리드 메서드
+  Widget _buildResponsiveSliverGrid(List<AbandonmentItem> pets) {
+    return SliverPadding(
+      padding: const EdgeInsets.all(12),
+      sliver: SliverDynamicHeightGridView(
+        crossAxisCount: _calculateCrossAxisCount(),
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        itemCount: pets.length,
+        builder: (context, index) {
+          final pet = pets[index];
+          return PetCard(
+            key: ValueKey(
+              'pet_card_${pet.desertionNo}_${_refreshStates[pet.desertionNo] ?? false}',
+            ),
+            pet: pet,
+          );
+        },
+      ),
+    );
+  }
+
+  // 화면 크기에 따른 열 수를 계산하는 메서드
+  int _calculateCrossAxisCount() {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // 화면 크기에 따른 고정된 열 수 설정
+    if (screenWidth < 600) {
+      return 2; // 작은 화면: 2열
+    } else if (screenWidth < 900) {
+      return 3; // 중간 화면: 3열
+    } else if (screenWidth < 1200) {
+      return 4; // 큰 화면: 4열
+    } else if (screenWidth < 1600) {
+      return 5; // 매우 큰 화면: 5열
+    } else {
+      return 6; // 초대형 화면: 6열
     }
   }
 
@@ -509,157 +528,160 @@ class _PetsListScreenState extends ConsumerState<PetsListScreen> {
           ),
         ],
       ),
-      body: CustomScrollView(
-        slivers: [
-          // 필터 부분을 SliverAppBar로 구현
-          SliverAppBar(
-            expandedHeight: 200, // 필터 부분의 높이
-            collapsedHeight: 56, // toolbarHeight보다 크거나 같게 설정
-            floating: true, // 스크롤 올릴 때 즉시 표시
-            pinned: false, // 스크롤 내릴 때 완전히 숨김
-            backgroundColor: AppColors.background,
-            elevation: 0,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Column(
-                children: [
-                  // 시도 선택기
-                  SidoSelector(
-                    sidoList: dropdownData['sido'] ?? [],
-                    selectedSidoCode: _selectedSidoCode,
-                    onSidoSelected: _onSidoSelected,
-                  ),
-                  // 축종 선택기
-                  KindSelector(
-                    kindList: dropdownData['upkind'] ?? [],
-                    selectedKindCode: _selectedKindCode,
-                    onKindSelected: _onKindSelected,
-                  ),
-                  // 상태 선택기
-                  StateSelector(
-                    selectedStateCode: _selectedStateCode,
-                    onStateSelected: _onStateSelected,
-                  ),
-                  // 검색 조건 표시
-                  SearchConditions(onRemoveCondition: _removeCondition),
-                ],
+      body: RefreshIndicator(
+        onRefresh: _refreshPets,
+        child: CustomScrollView(
+          slivers: [
+            // 필터 부분을 SliverAppBar로 구현
+            SliverAppBar(
+              expandedHeight: 200, // 필터 부분의 높이
+              collapsedHeight: 56, // toolbarHeight보다 크거나 같게 설정
+              floating: true, // 스크롤 올릴 때 즉시 표시
+              pinned: false, // 스크롤 내릴 때 완전히 숨김
+              backgroundColor: AppColors.background,
+              elevation: 0,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Column(
+                  children: [
+                    // 시도 선택기
+                    SidoSelector(
+                      sidoList: dropdownData['sido'] ?? [],
+                      selectedSidoCode: _selectedSidoCode,
+                      onSidoSelected: _onSidoSelected,
+                    ),
+                    // 축종 선택기
+                    KindSelector(
+                      kindList: dropdownData['upkind'] ?? [],
+                      selectedKindCode: _selectedKindCode,
+                      onKindSelected: _onKindSelected,
+                    ),
+                    // 상태 선택기
+                    StateSelector(
+                      selectedStateCode: _selectedStateCode,
+                      onStateSelected: _onStateSelected,
+                    ),
+                    // 검색 조건 표시
+                    SearchConditions(onRemoveCondition: _removeCondition),
+                  ],
+                ),
               ),
             ),
-          ),
-          // 캐시 상태 표시 (항상 표시)
-          const SliverToBoxAdapter(child: CacheStatusIndicator()),
-          // 펫 목록
-          petsAsync.when(
-            data: (pets) {
-              if (pets.isEmpty) {
-                return SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.4,
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.search_off,
-                            size: 64,
-                            color: AppColors.textSecondary,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            '검색 결과가 없습니다',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '검색 조건을 변경해보세요',
-                            style: TextStyle(
-                              fontSize: 14,
+            // 캐시 상태 표시 (항상 표시)
+            const SliverToBoxAdapter(child: CacheStatusIndicator()),
+            // 펫 목록
+            petsAsync.when(
+              data: (pets) {
+                if (pets.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.4,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 64,
                               color: AppColors.textSecondary,
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 16),
+                            Text(
+                              '검색 결과가 없습니다',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '검색 조건을 변경해보세요',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }
+                  );
+                }
 
-              return _buildPetSliverList(pets);
-            },
-            loading: () => SliverToBoxAdapter(
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.4,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        color: AppColors.primary,
-                        strokeCap: StrokeCap.round,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '펫 목록을 불러오는 중...',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 16,
+                return _buildPetSliverList(pets);
+              },
+              loading: () => SliverToBoxAdapter(
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.4,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          color: AppColors.primary,
+                          strokeCap: StrokeCap.round,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        Text(
+                          '펫 목록을 불러오는 중...',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              error: (error, stack) => SliverToBoxAdapter(
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.4,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.pets,
+                          size: 64,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          '길 잃은 발바닥을 찾다가',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '내가 길 잃었다 😅',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _refreshPets,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: Text('다시 시도'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-            error: (error, stack) => SliverToBoxAdapter(
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.4,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.pets,
-                        size: 64,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '길 잃은 발바닥을 찾다가',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '내가 길 잃었다 😅',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _refreshPets,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: Text('다시 시도'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
